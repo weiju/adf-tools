@@ -1,0 +1,6 @@
+project/boot
+target
+*.adf
+lib
+lib_managed
+
