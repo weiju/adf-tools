@@ -24,11 +24,13 @@ object UtilSpec extends Specification {
       val uint = new UnsignedInt(32)
       val result = uint + 5
       result.value must_== 37l
+      result.overflowOccurred must beFalse
     }
     "do a wrapping addition" in {
       val uint = new UnsignedInt(UnsignedInt.MaxValue)
       val result = uint + 5
       result.value must_== 4l
+      result.overflowOccurred must beTrue
     }
   }
 }

@@ -30,15 +30,23 @@ class Sector(data: Array[Byte], offset: Int) extends BitHelper {
 }
 
 trait PhysicalVolume {
+  def apply(byteNum: Int): Byte
+  def update(byteNum: Int, value: Byte)
   def sector(sectorNum: Int): Sector
   def bytesPerSector: Int
+  def longAt(byteNum: Int): Int
 }
 
-class AdfFile(data: Array[Byte]) extends PhysicalVolume {
+class AdfFile(data: Array[Byte]) extends PhysicalVolume with BitHelper {
   import AdfFile._
-
+  def apply(byteNum: Int) = data(byteNum)
+  def update(byteNum: Int, value: Byte) = data(byteNum) = value
   def sector(sectorNum: Int) = new Sector(data, sectorNum * BytesPerSector)
   def bytesPerSector = AdfFile.BytesPerSector
+  def longAt(byteNum: Int) = {
+    makeLong(data(byteNum),     data(byteNum + 1),
+             data(byteNum + 2), data(byteNum + 3))
+  }
 }
 
 object AdfFileFactory {

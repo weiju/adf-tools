@@ -15,7 +15,7 @@ object PhysicalVolumeSpec extends Specification {
 
   var adfFile: PhysicalVolume = null
 
-  "AdfFile" should {
+  "PhysicalVolume" should {
 
     doBefore {
       var workbenchFile: InputStream = null
@@ -54,6 +54,10 @@ object PhysicalVolumeSpec extends Specification {
       adfFile.sector(3)(2) must_== 42
       adfFile.sector(3)(3) must_== 128
       adfFile.sector(3)(4) must_== 255
+    }
+    "access data bytes directly" in {
+      adfFile(42) = 42
+      adfFile(42) must_== 42
     }
   }
 }

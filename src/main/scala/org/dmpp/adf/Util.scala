@@ -17,18 +17,23 @@ object UnsignedIntConversions {
 }
 
 /**
- * A class to emulate unsigned int behavior for addition, namely wrapping around.
+ * A class to emulate unsigned int behavior for addition, namely wrapping around
+ * when an addition overflow occurs. In that case, the "overflowOccurred" flag
+ * is also set on the resulting value.
  */
 object UnsignedInt {
   val MaxValue = 4294967295l
 }
-case class UnsignedInt(value: Long) {
+
+case class UnsignedInt(value: Long, overflowOccurred: Boolean = false) {
   import UnsignedInt._
   if (value > MaxValue) throw new IllegalArgumentException("value too large !!!")
 
   def +(aValue: UnsignedInt): UnsignedInt = {
+    import scala.math._
     val result = (value + aValue.value) % (MaxValue + 1)
-    UnsignedInt(result)
+    val overflowOccurred = result < max(value, aValue.value)
+    UnsignedInt(result, overflowOccurred)
   }
   def intValue = value.asInstanceOf[Int]
 }
