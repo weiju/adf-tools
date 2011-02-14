@@ -34,8 +34,26 @@ import java.util.Date
  * Mixin for common bit operations.
  */
 trait BitHelper {
+  /**
+   * Determines whether the specified flags are cleared.
+   * 
+   * @param flags the value to check for cleared flags
+   * @param flag a bit mask with the flags to be checked set
+   */
   def flagClear(flags: Int, flag: Int) = (flags & flag) == 0
+
+  /**
+   * Determines whether the specified flags are set.
+   * 
+   * @param flags the value to check for set flags
+   * @param flag a bit mask with the flags to be checked set
+   */
   def flagSet(flags: Int, flag: Int) = (flags & flag) == flag
+
+  /**
+   * Given four byte values (from most significant to least significant),
+   * join them into a 32-bit integer value.
+   */
   def makeInt32(byte0: Int, byte1: Int, byte2: Int, byte3: Int) = {
     ((byte0 << 24) & 0xff000000) | ((byte1 << 16) & 0xff0000) |
       ((byte2 << 8) & 0xff00) | (byte3 & 0xff)
@@ -66,6 +84,11 @@ object UnsignedInt32 {
  * A class to emulate unsigned int behavior for addition, namely wrapping around
  * when an addition overflow occurs. In that case, the "overflowOccurred" flag
  * is also set on the resulting value.
+ * 
+ * @constructor creates a new UnsignedInt32 value with optional overflow flag
+ * @param value the represented value
+ * @param overflowOccurred flag to indicate whether an overflow occurred during
+ *        an arithmetic operation
  */
 case class UnsignedInt32(value: Long, overflowOccurred: Boolean = false) {
   import UnsignedInt32._
@@ -113,14 +136,23 @@ object AmigaDosDate {
 }
 
 /**
- * Amiga DOS dates start at January 1st, 1978, rather than Java dates, which
+ * AmigaDOS dates start at January 1st, 1978, rather than Java dates, which
  * start at January 1st, 1970.
  * Ticks are measured in 1/50 of a second.
+ *
+ * @constructor creates an AmigaDOS date value with the specified arguments
+ * @param daysSinceJan_1_78 days since January 1st, 1978
+ * @param minutesPastMidnight minutes past 00:00
+ * @param ticksPastLastMinute ticks elapsed since last minute
  */
 case class AmigaDosDate(daysSinceJan_1_78: Int, minutesPastMidnight: Int,
                         ticksPastLastMinute: Int) {
   import AmigaDosDate._
 
+  /**
+   * Returns the Java Date equivalent of this AmigaDOS date
+   * @return a java.util.Date representing this AmigaDOS date
+   */
   def toDate: Date = {
     val baseMillis = DateFormat.parse("1978-01-01 00:00:00.000").getTime
     new Date(baseMillis +
@@ -133,5 +165,9 @@ case class AmigaDosDate(daysSinceJan_1_78: Int, minutesPastMidnight: Int,
   private def minutesToMillis(minutes: Int) = minutes * MillisecondsPerMinute
   private def ticksToMillis(ticks: Int)     = ticks * MillisecondsPerTick
 
+  /**
+   * String representation of this date.
+   * @return string representation
+   */
   override def toString = DateFormat.format(toDate)
 }

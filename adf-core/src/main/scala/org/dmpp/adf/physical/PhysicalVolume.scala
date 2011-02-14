@@ -39,14 +39,35 @@ import org.dmpp.adf.util._
  * bytes.
  */
 class Sector(data: Array[Byte], offset: Int, sizeInBytes: Int) extends BitHelper {
+
+  /**
+   * Retrieves the data byte at position byteNum.
+   *
+   * @param byteNum the position to retrieve
+   * @return data byte at the specified position
+   */
   def apply(byteNum: Int) = {
     if (byteNum >= sizeInBytes) throw new IndexOutOfBoundsException("invalid byte num")
     data(offset + byteNum) & 0xff
   }
+
+  /**
+   * Updates the data byte at the specified position with a value.
+   *
+   * @param byteNum the position to update
+   * @param value the new value
+   */
   def update(byteNum: Int, value: Int) {
     if (byteNum >= sizeInBytes) throw new IndexOutOfBoundsException("invalid byte num")
     data(offset + byteNum) = (value & 0xff).asInstanceOf[Byte]
   }
+
+  /**
+   * Returns the 32 bit integer at the specified position.
+   *
+   * @param byteNum the position of the data byte
+   * @return the specified data byte
+   */
   def int32At(byteNum: Int) = {
     makeInt32(data(offset + byteNum),     data(offset + byteNum + 1),
               data(offset + byteNum + 2), data(offset + byteNum + 3))
@@ -61,10 +82,43 @@ class Sector(data: Array[Byte], offset: Int, sizeInBytes: Int) extends BitHelper
  * calculations that span across multiple sectors simpler.
  */
 trait PhysicalVolume {
+
+  /**
+   * Retrieves the data byte at position byteNum.
+   *
+   * @param byteNum the position to retrieve
+   * @return data byte at the specified position
+   */
   def apply(byteNum: Int): Byte
+
+  /**
+   * Updates the data byte at the specified position with a value.
+   *
+   * @param byteNum the position to update
+   * @param value the new value
+   */
   def update(byteNum: Int, value: Byte)
+
+  /**
+   * Retrieves a sector on this disk.
+   * @param sectorNum the sector number
+   * @return the specified sector
+   */
   def sector(sectorNum: Int): Sector
+
+  /**
+   * Returns the number of bytes per sector.
+   *
+   * @return the number of bytes per sector
+   */
   def bytesPerSector: Int
+
+  /**
+   * Returns the 32 bit integer at the specified position.
+   *
+   * @param byteNum the position of the data byte
+   * @return the specified data byte
+   */
   def int32At(byteNum: Int): Int
 }
 
@@ -82,14 +136,19 @@ object DoubleDensityDisk {
 
 /**
  * This is the implementation of a Double Density disk.
+ *
+ * @constructor creates a DoubleDensityDisk instance from a byte array
+ * @param data a byte array containing a double density ADF image
  */
 class DoubleDensityDisk(data: Array[Byte]) extends PhysicalVolume with BitHelper {
   import DoubleDensityDisk._
-  def apply(byteNum: Int) = data(byteNum)
+
+  def apply(byteNum: Int): Byte = data(byteNum)
   def update(byteNum: Int, value: Byte) = data(byteNum) = value
-  def sector(sectorNum: Int) = new Sector(data, sectorNum * BytesPerSector,
-                                          BytesPerSector)
-  def bytesPerSector = BytesPerSector
+
+  def sector(sectorNum: Int): Sector = new Sector(data, sectorNum * BytesPerSector,
+                                                  BytesPerSector)
+  def bytesPerSector: Int = BytesPerSector
   def int32At(byteNum: Int) = {
     makeInt32(data(byteNum),     data(byteNum + 1),
               data(byteNum + 2), data(byteNum + 3))
@@ -97,10 +156,18 @@ class DoubleDensityDisk(data: Array[Byte]) extends PhysicalVolume with BitHelper
 }
 
 /**
- * Factory to generate physical volumes from various input sources.
+ * Factory to generate [[org.dmpp.adf.physical.PhysicalVolume]] instances
+ * from various input sources.
  */
 object PhysicalVolumeFactory {
-  def readDoubleDensityDisk(input: InputStream) = {
+
+  /**
+   * Creates a physical volume from a double density ADF input stream.
+   * 
+   * @param input an input stream
+   * @return a physical volume containing the data in the input stream
+   */
+  def readDoubleDensityDisk(input: InputStream): PhysicalVolume = {
     val data = new Array[Byte](DoubleDensityDisk.ImageSize)
     input.read(data)
     new DoubleDensityDisk(data)

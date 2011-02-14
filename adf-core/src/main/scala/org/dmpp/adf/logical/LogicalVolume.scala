@@ -48,22 +48,73 @@ object BlockType {
   val StLinkFile = -4
 }
 
-object FileSystemBlock {
-  val NameMaxChars = 30
-}
-
+/**
+ * Abstract super class for file system blocks.
+ *
+ * @constructor creates a file system block on a sector in a physical volume
+ * @param physicalVolume the physical volume
+ * @param sectorNumber the sector number
+ */
 abstract class FileSystemBlock(physicalVolume: PhysicalVolume,
                                val sectorNumber: Int) {
-  import FileSystemBlock._
 
   protected val sector          = physicalVolume.sector(sectorNumber)
   protected val sectorSize      = physicalVolume.bytesPerSector
 
+  /**
+   * Returns the block's primary type.
+   * @return the primary type
+   */
   def primaryType     = sector.int32At(0)
+
+  /**
+   * Returns a pointer to this block's header.
+   * @return the pointer to the header
+   */
   def headerKey       = sector.int32At(4)
+
+  /**
+   * Returns the currently stored checksum in this block.
+   *
+   * @return the currently stored checksum
+   */
   def storedChecksum  = sector.int32At(20)
+
+  /**
+   * Returns this block's secondary type.
+   *
+   * @return the secondary type
+   */
   def secondaryType   = sector.int32At(sectorSize - 4)
 
+}
+
+/**
+ * Symbolic constants for file system blocks.
+ */
+object HeaderBlock {
+  val NameMaxChars = 30
+}
+
+/**
+ * Header blocks are the first block of a file or directory. They can be
+ * referenced by hash tables.
+ *
+ * @constructor creates a header block for a sector on a volume
+ * @param physicalVolume a physical volume
+ * @param sectorNumber a sector number
+ */
+abstract class HeaderBlock(physicalVolume: PhysicalVolume,
+                           sectorNumber: Int)
+extends FileSystemBlock(physicalVolume: PhysicalVolume,
+                        sectorNumber: Int) {
+  import HeaderBlock._
+
+  /**
+   * Returns the name field stored in this block.
+   *
+   * @return this block's name
+   */
   def name = bcplStringAt(sectorSize - 80)
   private def bcplStringAt(offset: Int) = {
     val nameLength = scala.math.min(sector(offset),
@@ -74,26 +125,39 @@ abstract class FileSystemBlock(physicalVolume: PhysicalVolume,
     }
     builder.toString
   }
+
+  /**
+   * Returns the next block in the hash bucket list.
+   *
+   * @return next block in hash bucket list
+   */
   def nextInHashBucket = sector.int32At(sectorSize - 16)
 }
 
+/**
+ * Abstract super class for directory blocks.
+ * 
+ * @constructor creates a directory block on a sector in a physical volume
+ * @param physicalVolume the physical volume
+ * @param sectorNumber the sector number
+ */
 abstract class DirectoryBlock(physicalVolume: PhysicalVolume,
                               sectorNumber: Int)
-extends FileSystemBlock(physicalVolume, sectorNumber) {
+extends HeaderBlock(physicalVolume, sectorNumber) {
 
   def hashtableSize   = sector.int32At(12)
-  def hashtableEntries: List[FileSystemBlock] = {
-    var result : List[FileSystemBlock] = Nil
+  def hashtableEntries: List[HeaderBlock] = {
+    var result : List[HeaderBlock] = Nil
     val byteSize = hashtableSize * 4
     for (i <- 0 until byteSize by 4) {
       result = addToBucketRecursively(result, sector.int32At(i))
     }
     result.reverse
   }
-  private def addToBucketRecursively(addTo: List[FileSystemBlock],
-                                     blockNumber: Int): List[FileSystemBlock] = {
+  private def addToBucketRecursively(addTo: List[HeaderBlock],
+                                     blockNumber: Int): List[HeaderBlock] = {
     if (isNonEmptyHashEntry(blockNumber)) {
-      val block = new UnspecifiedBlock(physicalVolume, blockNumber)
+      val block = new GenericHeaderBlock(physicalVolume, blockNumber)
       addToBucketRecursively(block :: addTo, block.nextInHashBucket)
     } else addTo
   }
@@ -104,19 +168,31 @@ extends FileSystemBlock(physicalVolume, sectorNumber) {
  * A block that we can quickly wrap around a sector in order to determine
  * its type.
  */
-class UnspecifiedBlock(physicalVolume: PhysicalVolume,
-                       sectorNumber: Int)
-extends FileSystemBlock(physicalVolume, sectorNumber)
+class GenericHeaderBlock(physicalVolume: PhysicalVolume,
+                         sectorNumber: Int)
+extends HeaderBlock(physicalVolume, sectorNumber)
 
+/**
+ * A logical volume based on an underlying physical volume.
+ *
+ * @constructor creates a logical volume instance with a physical volume
+ * @param physicalVolume the physical volume the logical volume is based on
+ */
 class LogicalVolume(physicalVolume: PhysicalVolume) {
   import LogicalVolume._
 
+  /**
+   * Symbolic constants for boot blocks.
+   */
   object BootBlock {
     val FlagFFS              = 1
     val FlagIntlOnly         = 2
     val FlagDirCacheAndIntl  = 4
   }
 
+  /**
+   * This class represents the boot block on an Amiga volume.
+   */
   class BootBlock extends BitHelper {
     import BootBlock._
 
@@ -142,11 +218,22 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     }
   }
 
+  /**
+   * Symbolic constants for logical volumes.
+   */
   object LogicalVolume {
     val RootSectorNumber   = 880
   }
+
+  /**
+   * This class represents an Amiga volume's root block.
+   *
+   * @constructor creates a root block instance for the specified sector
+   * @param sectorNumber the sector number
+   */
   class RootBlock(sectorNumber: Int)
   extends DirectoryBlock(physicalVolume, sectorNumber) {
+
     def highSeq         = sector.int32At(8)
     def firstData       = sector.int32At(16)
     // hash table data from 24 to (<sector size> - 200)
@@ -182,6 +269,9 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     }
   }
 
+  /** This volume's boot block. */
   val bootBlock = new BootBlock
+
+  /** This volumes's root block. */
   val rootBlock = new RootBlock(RootSectorNumber)
 }
