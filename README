@@ -1,0 +1,24 @@
+Name:          ADF Tools
+Author:        Wei-ju Wu
+Creation Date: February 11th, 2011
+Description:   Tools for accessing Amiga file system images in Java
+
+About this project
+------------------
+
+This is a collection of software tools to access Amiga file systems.
+At the core is a file system library written in Scala.
+I started to write this because I wanted to use my Mac to prepare
+a couple of ADF files for testing on UAE.
+
+Background
+----------
+The ADF C library does not compile correctly on my machine and I needed
+a Java library to access ADF files anyways, so I just started to work
+on it.
+
+The file system specifications were taken from
+
+Ralph Babel's Amiga Guru Book, chapters 9, 10 and 15
+http://lclevy.free.fr/adflib/adf_info.html
+
