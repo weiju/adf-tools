@@ -49,17 +49,78 @@ object BlockType {
 }
 
 /**
- * Abstract super class for file system blocks.
+ * An interface to indicate an object that has a checksum
+ */
+trait HasChecksum {
+
+  /**
+   * Returns the currently stored checksum for this block.
+   *
+   * @return the currently stored checksum
+   */
+  def storedChecksum: Int
+
+  /**
+   * Computes a checksum in this block.
+   *
+   * @return the checksum based on this object' data
+   */
+  def computedChecksum: Int
+}
+
+/**
+ * A mixin trait which provides the standard checksum algorithm. This
+ * algorithm can be used for all blocks except the boot block.
+ */
+trait SectorBasedChecksum {
+  /**
+   * Returns the sector this block is based on.
+   *
+   * @return the Sector instance
+   */
+  def sector: Sector
+
+  /**
+   * Returns thes sector size.
+   *
+   * @return sector size
+   */
+  def sectorSize: Int
+
+  /**
+   * Standard checksum algorithm.
+   *
+   * @param checksumFieldOffset the offset of the field containing the stored
+   *        checksum
+   * @return the checksum based on this object' data
+   */
+  def computeChecksum(checksumFieldOffset: Int): Int = {
+    import UnsignedInt32Conversions._
+
+    var sum: UnsignedInt32 = 0
+    for (i <- 0 until sectorSize by 4) {
+      if (i != checksumFieldOffset) { // ignore the checksum field
+        sum += (sector.int32At(i) & 0xffffffffl)
+      }
+    }
+    -sum.intValue
+  }
+}
+
+/**
+ * Abstract super class for file system blocks. File system blocks
+ * have primary and secondary types.
  *
  * @constructor creates a file system block on a sector in a physical volume
  * @param physicalVolume the physical volume
  * @param sectorNumber the sector number
  */
 abstract class FileSystemBlock(physicalVolume: PhysicalVolume,
-                               val sectorNumber: Int) {
+                               val sectorNumber: Int)
+extends HasChecksum with SectorBasedChecksum {
 
-  protected val sector          = physicalVolume.sector(sectorNumber)
-  protected val sectorSize      = physicalVolume.bytesPerSector
+  val sector          = physicalVolume.sector(sectorNumber)
+  def sectorSize      = physicalVolume.bytesPerSector
 
   /**
    * Returns the block's primary type.
@@ -74,19 +135,14 @@ abstract class FileSystemBlock(physicalVolume: PhysicalVolume,
   def headerKey       = sector.int32At(4)
 
   /**
-   * Returns the currently stored checksum in this block.
-   *
-   * @return the currently stored checksum
-   */
-  def storedChecksum  = sector.int32At(20)
-
-  /**
    * Returns this block's secondary type.
    *
    * @return the secondary type
    */
   def secondaryType   = sector.int32At(sectorSize - 4)
 
+  def storedChecksum  = sector.int32At(20)
+  def computedChecksum: Int = computeChecksum(20)
 }
 
 /**
@@ -145,7 +201,19 @@ abstract class DirectoryBlock(physicalVolume: PhysicalVolume,
                               sectorNumber: Int)
 extends HeaderBlock(physicalVolume, sectorNumber) {
 
+  /**
+   * Returns the size of the directory's hash table.
+   *
+   * @return hash table size
+   */
   def hashtableSize   = sector.int32At(12)
+
+  /**
+   * Returns the list of all valid header blocks contained in this directory's
+   * hash table.
+   *
+   * @return all header blocks in the directory
+   */
   def hashtableEntries: List[HeaderBlock] = {
     var result : List[HeaderBlock] = Nil
     val byteSize = hashtableSize * 4
@@ -173,6 +241,25 @@ class GenericHeaderBlock(physicalVolume: PhysicalVolume,
 extends HeaderBlock(physicalVolume, sectorNumber)
 
 /**
+ * A bitmap block stores information about free and used blocks in the
+ * file system.
+ *
+ * @constructor creates a bitmap block in the specified sector of a volume
+ * @param physicalVolume the physical volume
+ * @param sectorNumber ths sector number
+ */
+class BitmapBlock(physicalVolume: PhysicalVolume,
+                  val sectorNumber: Int)
+extends HasChecksum with SectorBasedChecksum {
+
+  val sector = physicalVolume.sector(sectorNumber)
+  def sectorSize = physicalVolume.bytesPerSector
+
+  def storedChecksum        = sector.int32At(0)
+  def computedChecksum: Int = computeChecksum(0)
+}
+
+/**
  * A logical volume based on an underlying physical volume.
  *
  * @constructor creates a logical volume instance with a physical volume
@@ -193,17 +280,18 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
   /**
    * This class represents the boot block on an Amiga volume.
    */
-  class BootBlock extends BitHelper {
+  class BootBlock extends HasChecksum with BitHelper {
     import BootBlock._
 
     private def flags = physicalVolume(3) & 0x07
-    def fileType = if (flagClear(flags, FlagFFS)) "OFS" else "FFS"
+    def filesystemType  = if (flagClear(flags, FlagFFS)) "OFS" else "FFS"
     def isInternational = flagSet(flags, FlagIntlOnly) ||
                           flagSet(flags, FlagDirCacheAndIntl)
-    def useDirCache = flagSet(flags, FlagDirCacheAndIntl)
+    def useDirCache     = flagSet(flags, FlagDirCacheAndIntl)
 
-    def storedChecksum        = physicalVolume.int32At(4)
+    def storedChecksum  = physicalVolume.int32At(4)
     def rootBlockNumber = physicalVolume.int32At(8)
+
     def computedChecksum: Int = {
       import UnsignedInt32Conversions._
 
@@ -241,6 +329,15 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     def bitmapIsValid: Boolean = {
       (sector.int32At(sectorSize - 200) == 0xffffffff)
     }
+    def bitmapBlocks: List[BitmapBlock] = {
+      var result: List[BitmapBlock] = Nil
+      val baseOffset = sectorSize - 196
+      for (i <- 0 until 25) {
+        val bitmapBlockId = sector.int32At(baseOffset + i * 4)
+        if (bitmapBlockId > 0) result ::= new BitmapBlock(physicalVolume, bitmapBlockId)
+      }
+      result.reverse
+    }
     def lastModifiedRoot: Date = {
       AmigaDosDate(sector.int32At(sectorSize - 92),
                    sector.int32At(sectorSize - 88),
@@ -255,17 +352,6 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
       AmigaDosDate(sector.int32At(sectorSize - 28),
                    sector.int32At(sectorSize - 24),
                    sector.int32At(sectorSize - 20)).toDate
-    }
-    def computedChecksum: Int = {
-      import UnsignedInt32Conversions._
-
-      var sum: UnsignedInt32 = 0
-      for (i <- 0 until physicalVolume.bytesPerSector by 4) {
-        if (i != 20) { // ignore offset 20 (the checksum field)
-          sum += (sector.int32At(i) & 0xffffffffl)
-        }
-      }
-      -sum.intValue
     }
   }
 

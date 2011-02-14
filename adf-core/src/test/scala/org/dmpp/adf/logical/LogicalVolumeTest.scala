@@ -59,7 +59,7 @@ object LogicalVolumeSpec extends Specification {
       }
     }
     "be of file system type OFS, no dir cache and not international" in {
-      logicalVolume.bootBlock.fileType must_== "OFS"
+      logicalVolume.bootBlock.filesystemType must_== "OFS"
       logicalVolume.bootBlock.isInternational must beFalse
       logicalVolume.bootBlock.useDirCache must beFalse
     }
@@ -107,6 +107,17 @@ object LogicalVolumeSpec extends Specification {
                block.name,
                block.nextInHashBucket)
       }
+    }
+    "get bitmap blocks" in {
+      logicalVolume.rootBlock.bitmapBlocks.length must_== 1
+      logicalVolume.rootBlock.bitmapBlocks.head.sectorNumber must_== 1015
+    }
+    "bitmap block has a checksum" in {
+      logicalVolume.rootBlock.bitmapBlocks.head.storedChecksum must_== 0xb462193c
+    }
+    "bitmap block computes a checksum" in {
+      val bitmapBlock = logicalVolume.rootBlock.bitmapBlocks.head
+      bitmapBlock.computedChecksum must_== bitmapBlock.storedChecksum
     }
   }
   def formatted(date: Date) = {
