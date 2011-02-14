@@ -94,7 +94,7 @@ object LogicalVolumeSpec extends Specification {
         logicalVolume.rootBlock.storedChecksum
     }
     "have root hash table that contains system entries" in {
-      logicalVolume.rootBlock.hashtableEntries.length must_== 23
+      logicalVolume.rootBlock.hashtableEntries.length must_== 24
       logicalVolume.rootBlock.hashtableEntries.find(e => e.name == "c") must_!= None
       logicalVolume.rootBlock.hashtableEntries.find(e => e.name == "System") must_!= None
 
@@ -108,6 +108,14 @@ object LogicalVolumeSpec extends Specification {
                block.nextInHashBucket)
       }
     }
+    "root block should return valid block numbers for valid file names" in {
+      logicalVolume.rootBlock.blockNumberForName("System") must_== 881
+      logicalVolume.rootBlock.blockNumberForName("System.info") must_== 1289
+      logicalVolume.rootBlock.blockNumberForName("Empty") must_== 1281
+    }
+    "root block should return 0 for non-existing file name" in {
+      logicalVolume.rootBlock.blockNumberForName("notexisting") must_== 0
+    }
     "get bitmap blocks" in {
       logicalVolume.rootBlock.bitmapBlocks.length must_== 1
       logicalVolume.rootBlock.bitmapBlocks.head.sectorNumber must_== 1015
@@ -118,6 +126,14 @@ object LogicalVolumeSpec extends Specification {
     "bitmap block computes a checksum" in {
       val bitmapBlock = logicalVolume.rootBlock.bitmapBlocks.head
       bitmapBlock.computedChecksum must_== bitmapBlock.storedChecksum
+    }
+    "bitmap block computes the free blocks" in {
+      val bitmapBlock = logicalVolume.rootBlock.bitmapBlocks.head
+      bitmapBlock.freeBlockNumbers.length must_== 31
+    }
+    "bitmap block computes the used blocks" in {
+      val bitmapBlock = logicalVolume.rootBlock.bitmapBlocks.head
+      bitmapBlock.usedBlockNumbers.length must_== 1727
     }
   }
   def formatted(date: Date) = {

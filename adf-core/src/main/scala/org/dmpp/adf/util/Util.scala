@@ -51,6 +51,40 @@ trait BitHelper {
   def flagSet(flags: Int, flag: Int) = (flags & flag) == flag
 
   /**
+   * Returns a list of bit numbers that are set in a given bit mask.
+   * Note that the MSB in this case is number 0 and the LSB
+   * is 31.
+   *
+   * @param bitmask the bit mask to check
+   * @return list of bit numbers that are set
+   */
+  def bitsSetIn(bitmask: Int): List[Int] = {
+    bitsFilter(bitmask, mask => ((mask & 1) == 1))
+  }
+
+  /**
+   * Returns a list of bit numbers that are set in a given bit mask.
+   * Note that the MSB in this case is number 0 and the LSB
+   * is 31.
+   *
+   * @param bitmask the bit mask to check
+   * @return list of bit numbers that are set
+   */
+  def bitsClearIn(bitmask: Int): List[Int] = {
+    bitsFilter(bitmask, mask => ((mask & 1) == 0))
+  }
+
+  private def bitsFilter(bitmask: Int, pred: Int => Boolean): List[Int] = {
+    var current = bitmask
+    var result: List[Int] = Nil
+    for (i <- 0 until 32) {
+      if (pred(current)) result ::= (31 - i)
+      current >>>= 1
+    }
+    result
+  }
+
+  /**
    * Given four byte values (from most significant to least significant),
    * join them into a 32-bit integer value.
    */

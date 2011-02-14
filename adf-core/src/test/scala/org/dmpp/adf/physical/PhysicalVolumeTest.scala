@@ -56,6 +56,8 @@ object PhysicalVolumeSpec extends Specification {
 
     "data size should be correct" in {
       DoubleDensityDisk.ImageSize must_== 901120
+      disk.numSectorsTotal must_== 1760
+      disk.bytesPerSector  must_== 512
     }
     "first three bytes of sector 0 must be DOS" in {
       disk.sector(0)(0).asInstanceOf[Char] must_== 'D'

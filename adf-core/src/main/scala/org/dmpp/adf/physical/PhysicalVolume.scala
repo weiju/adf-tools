@@ -84,6 +84,13 @@ class Sector(data: Array[Byte], offset: Int, sizeInBytes: Int) extends BitHelper
 trait PhysicalVolume {
 
   /**
+   * Retrieves the total number of sectors.
+   *
+   * @return total number of sectors
+   */
+  def numSectorsTotal: Int
+
+  /**
    * Retrieves the data byte at position byteNum.
    *
    * @param byteNum the position to retrieve
@@ -130,8 +137,9 @@ object DoubleDensityDisk {
   val NumSectorsPerTrack   = 11
   val NumTracksPerCylinder = 2
   val NumCylindersPerDisk  = 80
-  val ImageSize = BytesPerSector * NumSectorsPerTrack *
-                  NumTracksPerCylinder * NumCylindersPerDisk 
+  val NumSectorsTotal      = NumCylindersPerDisk * NumTracksPerCylinder *
+                             NumSectorsPerTrack
+  val ImageSize            = BytesPerSector * NumSectorsTotal 
 }
 
 /**
@@ -143,6 +151,7 @@ object DoubleDensityDisk {
 class DoubleDensityDisk(data: Array[Byte]) extends PhysicalVolume with BitHelper {
   import DoubleDensityDisk._
 
+  def numSectorsTotal: Int = NumSectorsTotal
   def apply(byteNum: Int): Byte = data(byteNum)
   def update(byteNum: Int, value: Byte) = data(byteNum) = value
 

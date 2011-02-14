@@ -191,6 +191,14 @@ extends FileSystemBlock(physicalVolume: PhysicalVolume,
 }
 
 /**
+ * Constants for DirectoryBlock class.
+ */
+object DirectoryBlock {
+  val OffsetHashtableSize = 12
+  val OffsetHashtable     = 24
+}
+
+/**
  * Abstract super class for directory blocks.
  * 
  * @constructor creates a directory block on a sector in a physical volume
@@ -201,12 +209,14 @@ abstract class DirectoryBlock(physicalVolume: PhysicalVolume,
                               sectorNumber: Int)
 extends HeaderBlock(physicalVolume, sectorNumber) {
 
+  import DirectoryBlock._
+
   /**
    * Returns the size of the directory's hash table.
    *
    * @return hash table size
    */
-  def hashtableSize   = sector.int32At(12)
+  def hashtableSize   = sector.int32At(OffsetHashtableSize)
 
   /**
    * Returns the list of all valid header blocks contained in this directory's
@@ -218,7 +228,7 @@ extends HeaderBlock(physicalVolume, sectorNumber) {
     var result : List[HeaderBlock] = Nil
     val byteSize = hashtableSize * 4
     for (i <- 0 until byteSize by 4) {
-      result = addToBucketRecursively(result, sector.int32At(i))
+      result = addToBucketRecursively(result, sector.int32At(OffsetHashtable + i))
     }
     result.reverse
   }
@@ -230,6 +240,42 @@ extends HeaderBlock(physicalVolume, sectorNumber) {
     } else addTo
   }
   private def isNonEmptyHashEntry(entry: Int) = entry > 0
+
+  /**
+   * Returns a block number for a given file/directory name in this.
+   * This searches the hash table and its buckets.
+   *
+   * @param the file/directory name
+   * @return the block name or 0 if not found
+   */
+  def blockNumberForName(name: String): Int = {
+    val hash = hashcodeForName(name)
+    val blocknum = blockAtHashtableIndex(hash)
+    findBlockNumberForNameRecursively(name, blocknum)
+  }
+  private def blockAtHashtableIndex(index: Int): Int = {
+    sector.int32At(OffsetHashtable + index * 4)
+  }
+  private def hashcodeForName(name: String): Int = {
+    var hash = name.length
+    for (i <- 0 until name.length) {
+      hash *= 13
+      hash += Character.toUpperCase(name(i))
+      hash &= 0x7ff
+    }
+    hash % hashtableSize
+  }
+  private def findBlockNumberForNameRecursively(name: String,
+                                                blocknum: Int): Int = {
+    if (blocknum == 0) 0
+    else {
+      val current = new GenericHeaderBlock(physicalVolume, blocknum)
+      if (current.name == name) blocknum
+      else {
+        findBlockNumberForNameRecursively(name, current.nextInHashBucket)
+      }
+    }
+  }
 }
 
 /**
@@ -250,13 +296,27 @@ extends HeaderBlock(physicalVolume, sectorNumber)
  */
 class BitmapBlock(physicalVolume: PhysicalVolume,
                   val sectorNumber: Int)
-extends HasChecksum with SectorBasedChecksum {
+extends HasChecksum with SectorBasedChecksum with BitHelper {
 
   val sector = physicalVolume.sector(sectorNumber)
   def sectorSize = physicalVolume.bytesPerSector
 
   def storedChecksum        = sector.int32At(0)
   def computedChecksum: Int = computeChecksum(0)
+
+  def freeBlockNumbers: List[Int] = countBitmapBitsWith(bitsSetIn _)
+  def usedBlockNumbers: List[Int] = countBitmapBitsWith(bitsClearIn _)
+  private def countBitmapBitsWith(countFunc: Int => List[Int]) = {
+    var result: List[Int] = Nil
+    var currentBlockOffset = 2
+    for (fieldIndex <- 4 until sectorSize by 4) {
+      val mask = sector.int32At(fieldIndex)
+      val bitsSet = countFunc(mask).map(n => n + currentBlockOffset)
+      result = result ++ bitsSet
+      currentBlockOffset += 32
+    }
+    result.filter(n => n < physicalVolume.numSectorsTotal)
+  }
 }
 
 /**
