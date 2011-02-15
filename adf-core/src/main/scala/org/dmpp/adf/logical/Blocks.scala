@@ -124,20 +124,42 @@ extends ReadsBcplStrings with SectorBasedChecksum {
 class DirectoryEntryBlock(physicalVolume: PhysicalVolume,
                           sectorNumber: Int)
 extends HeaderBlock(physicalVolume, sectorNumber) with HasComment
-with HasAccessRights 
+with HasAccessRights {
+  def isDirectory = secondaryType == BlockType.StUserDir
+  def isFile      = secondaryType == BlockType.StFile
+}
 
 /**
  * A class to represent a user directory block.
  */
 class UserDirectoryBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(physicalVolume, blockNumber)
-with DirectoryLike
+with DirectoryLike {
+  def parentBlock = sector.int32At(sector.sizeInBytes - 12)
+}
 
 /**
  * A class to represent a file header block.
  */
 class FileHeaderBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
-extends DirectoryEntryBlock(physicalVolume, blockNumber)
+extends DirectoryEntryBlock(physicalVolume, blockNumber) {
+  def fileSize  = sector.int32At(sector.sizeInBytes - 188)
+  def dataBlocks = {
+    var result: List[Int] = Nil
+    var pointer = sector.sizeInBytes - 204
+    var atLastBlock = fileSize == 0
+    while (!atLastBlock) {
+      val blocknum = sector.int32At(pointer)
+      if (blocknum > 0) result ::= blocknum
+      pointer -= 4
+      atLastBlock = (pointer < 24) || blocknum <= 0
+    }
+    if (pointer < 24) {
+      throw new UnsupportedOperationException("Large files not supported yet")
+    }
+    result.reverse
+  }
+}
 
 /**
  * A bitmap block stores information about free and used blocks in the

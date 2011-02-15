@@ -93,13 +93,52 @@ trait SectorBasedChecksum extends SectorBased {
   }
 }
 
+/**
+ * Shell and protection flags, called HSPARWED in the Guru Book.
+ */
+case class ProtectionFlags(flags: Int) {
+  def canDelete  = (flags & 0x0001) == 0x0000
+  def canExecute = (flags & 0x0002) == 0x0000
+  def canWrite   = (flags & 0x0004) == 0x0000
+  def canRead    = (flags & 0x0008) == 0x0000
+  def isArchived = (flags & 0x0010) == 0x0010
+  def isPure     = (flags & 0x0020) == 0x0020
+  def isScript   = (flags & 0x0040) == 0x0040
+  def hold       = (flags & 0x0080) == 0x0080
+}
+/**
+ * Trait to decorate blocks that have access masks and user/group ids.
+ */
 trait HasAccessRights extends SectorBased {
+  /**
+   * Returns the user id.
+   * @return user id
+   */
   def uid: Int = sector.int16At(sector.sizeInBytes - 196)
+
+  /**
+   * Returns the group id.
+   * @return group id
+   */
   def gid: Int = sector.int16At(sector.sizeInBytes - 194)
+
+  /**
+   * Returns shell and protection flags.
+   * @return shell and protection flags
+   */
+  def flags = ProtectionFlags(sector.int32At(sector.sizeInBytes - 192))
 }
 
+/**
+ * Trait to decorate blocks that are reading a BCPL string field.
+ */
 trait ReadsBcplStrings extends SectorBased {
 
+  /**
+   * Read the BCPL string at the specified position.
+   * @param offset the data offset within the data
+   * @param maxChars the maximum number of characters
+   */
   def bcplStringAt(offset: Int, maxChars: Int) = {
     val nameLength = scala.math.min(sector(offset),
                                     maxChars)
@@ -175,17 +214,20 @@ trait DirectoryLike extends SectorBased {
    * @param the file/directory name
    * @return the block name or 0 if not found
    */
-  def blockForName(name: String): DirectoryEntryBlock = {
+  def blockForName(name: String): Option[DirectoryEntryBlock] = {
     val blockNumber = blockNumberForName(name)
-    val header = new DirectoryEntryBlock(physicalVolume, blockNumber)
+    if (blockNumber == 0) None
+    else {
+      val header = new DirectoryEntryBlock(physicalVolume, blockNumber)
 
-    header.secondaryType match {
-      case BlockType.StUserDir =>
-        new UserDirectoryBlock(physicalVolume, blockNumber)
-      case BlockType.StFile    =>
-        new FileHeaderBlock(physicalVolume, blockNumber)
-      case _ =>
-        throw new UnsupportedOperationException("unsupported secondary header type")
+      header.secondaryType match {
+        case BlockType.StUserDir =>
+          Some(new UserDirectoryBlock(physicalVolume, blockNumber))
+        case BlockType.StFile    =>
+          Some(new FileHeaderBlock(physicalVolume, blockNumber))
+        case _ =>
+          throw new UnsupportedOperationException("unsupported secondary header type")
+      }
     }
   }
 
