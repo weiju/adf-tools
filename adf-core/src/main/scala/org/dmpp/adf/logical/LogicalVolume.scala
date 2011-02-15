@@ -32,294 +32,6 @@ import org.dmpp.adf.util._
 import org.dmpp.adf.physical._
 
 /**
- * All known primary and secondary block types in AmigaDOS.
- */
-object BlockType {
-  val PtShort    = 2
-  val PtData     = 8
-  val PtList     = 16
-  val PtDirCache = 33
-
-  val StRoot     =  1
-  val StUserDir  =  2
-  val StSoftLink =  3
-  val StLinkDir  =  4
-  val StFile     = -3
-  val StLinkFile = -4
-}
-
-/**
- * An interface to indicate an object that has a checksum
- */
-trait HasChecksum {
-
-  /**
-   * Returns the currently stored checksum for this block.
-   *
-   * @return the currently stored checksum
-   */
-  def storedChecksum: Int
-
-  /**
-   * Computes a checksum in this block.
-   *
-   * @return the checksum based on this object' data
-   */
-  def computedChecksum: Int
-}
-
-/**
- * A mixin trait which provides the standard checksum algorithm. This
- * algorithm can be used for all blocks except the boot block.
- */
-trait SectorBasedChecksum {
-  /**
-   * Returns the sector this block is based on.
-   *
-   * @return the Sector instance
-   */
-  def sector: Sector
-
-  /**
-   * Returns thes sector size.
-   *
-   * @return sector size
-   */
-  def sectorSize: Int
-
-  /**
-   * Standard checksum algorithm.
-   *
-   * @param checksumFieldOffset the offset of the field containing the stored
-   *        checksum
-   * @return the checksum based on this object' data
-   */
-  def computeChecksum(checksumFieldOffset: Int): Int = {
-    import UnsignedInt32Conversions._
-
-    var sum: UnsignedInt32 = 0
-    for (i <- 0 until sectorSize by 4) {
-      if (i != checksumFieldOffset) { // ignore the checksum field
-        sum += (sector.int32At(i) & 0xffffffffl)
-      }
-    }
-    -sum.intValue
-  }
-}
-
-/**
- * Abstract super class for file system blocks. File system blocks
- * have primary and secondary types.
- *
- * @constructor creates a file system block on a sector in a physical volume
- * @param physicalVolume the physical volume
- * @param sectorNumber the sector number
- */
-abstract class FileSystemBlock(physicalVolume: PhysicalVolume,
-                               val sectorNumber: Int)
-extends HasChecksum with SectorBasedChecksum {
-
-  val sector          = physicalVolume.sector(sectorNumber)
-  def sectorSize      = physicalVolume.bytesPerSector
-
-  /**
-   * Returns the block's primary type.
-   * @return the primary type
-   */
-  def primaryType     = sector.int32At(0)
-
-  /**
-   * Returns a pointer to this block's header.
-   * @return the pointer to the header
-   */
-  def headerKey       = sector.int32At(4)
-
-  /**
-   * Returns this block's secondary type.
-   *
-   * @return the secondary type
-   */
-  def secondaryType   = sector.int32At(sectorSize - 4)
-
-  def storedChecksum  = sector.int32At(20)
-  def computedChecksum: Int = computeChecksum(20)
-}
-
-/**
- * Symbolic constants for file system blocks.
- */
-object HeaderBlock {
-  val NameMaxChars = 30
-}
-
-/**
- * Header blocks are the first block of a file or directory. They can be
- * referenced by hash tables.
- *
- * @constructor creates a header block for a sector on a volume
- * @param physicalVolume a physical volume
- * @param sectorNumber a sector number
- */
-abstract class HeaderBlock(physicalVolume: PhysicalVolume,
-                           sectorNumber: Int)
-extends FileSystemBlock(physicalVolume: PhysicalVolume,
-                        sectorNumber: Int) {
-  import HeaderBlock._
-
-  /**
-   * Returns the name field stored in this block.
-   *
-   * @return this block's name
-   */
-  def name = bcplStringAt(sectorSize - 80)
-  private def bcplStringAt(offset: Int) = {
-    val nameLength = scala.math.min(sector(offset),
-                                    NameMaxChars)
-    val builder = new StringBuilder
-    for (i <- 0 until nameLength) {
-      builder.append(sector(offset + 1 + i).asInstanceOf[Char])
-    }
-    builder.toString
-  }
-
-  /**
-   * Returns the next block in the hash bucket list.
-   *
-   * @return next block in hash bucket list
-   */
-  def nextInHashBucket = sector.int32At(sectorSize - 16)
-}
-
-/**
- * Constants for DirectoryBlock class.
- */
-object DirectoryBlock {
-  val OffsetHashtableSize = 12
-  val OffsetHashtable     = 24
-}
-
-/**
- * Abstract super class for directory blocks.
- * 
- * @constructor creates a directory block on a sector in a physical volume
- * @param physicalVolume the physical volume
- * @param sectorNumber the sector number
- */
-abstract class DirectoryBlock(physicalVolume: PhysicalVolume,
-                              sectorNumber: Int)
-extends HeaderBlock(physicalVolume, sectorNumber) {
-
-  import DirectoryBlock._
-
-  /**
-   * Returns the size of the directory's hash table.
-   *
-   * @return hash table size
-   */
-  def hashtableSize   = sector.int32At(OffsetHashtableSize)
-
-  /**
-   * Returns the list of all valid header blocks contained in this directory's
-   * hash table.
-   *
-   * @return all header blocks in the directory
-   */
-  def hashtableEntries: List[HeaderBlock] = {
-    var result : List[HeaderBlock] = Nil
-    val byteSize = hashtableSize * 4
-    for (i <- 0 until byteSize by 4) {
-      result = addToBucketRecursively(result, sector.int32At(OffsetHashtable + i))
-    }
-    result.reverse
-  }
-  private def addToBucketRecursively(addTo: List[HeaderBlock],
-                                     blockNumber: Int): List[HeaderBlock] = {
-    if (isNonEmptyHashEntry(blockNumber)) {
-      val block = new GenericHeaderBlock(physicalVolume, blockNumber)
-      addToBucketRecursively(block :: addTo, block.nextInHashBucket)
-    } else addTo
-  }
-  private def isNonEmptyHashEntry(entry: Int) = entry > 0
-
-  /**
-   * Returns a block number for a given file/directory name in this.
-   * This searches the hash table and its buckets.
-   *
-   * @param the file/directory name
-   * @return the block name or 0 if not found
-   */
-  def blockNumberForName(name: String): Int = {
-    val hash = hashcodeForName(name)
-    val blocknum = blockAtHashtableIndex(hash)
-    findBlockNumberForNameRecursively(name, blocknum)
-  }
-  private def blockAtHashtableIndex(index: Int): Int = {
-    sector.int32At(OffsetHashtable + index * 4)
-  }
-  private def hashcodeForName(name: String): Int = {
-    var hash = name.length
-    for (i <- 0 until name.length) {
-      hash *= 13
-      hash += Character.toUpperCase(name(i))
-      hash &= 0x7ff
-    }
-    hash % hashtableSize
-  }
-  private def findBlockNumberForNameRecursively(name: String,
-                                                blocknum: Int): Int = {
-    if (blocknum == 0) 0
-    else {
-      val current = new GenericHeaderBlock(physicalVolume, blocknum)
-      if (current.name == name) blocknum
-      else {
-        findBlockNumberForNameRecursively(name, current.nextInHashBucket)
-      }
-    }
-  }
-}
-
-/**
- * A block that we can quickly wrap around a sector in order to determine
- * its type.
- */
-class GenericHeaderBlock(physicalVolume: PhysicalVolume,
-                         sectorNumber: Int)
-extends HeaderBlock(physicalVolume, sectorNumber)
-
-/**
- * A bitmap block stores information about free and used blocks in the
- * file system.
- *
- * @constructor creates a bitmap block in the specified sector of a volume
- * @param physicalVolume the physical volume
- * @param sectorNumber ths sector number
- */
-class BitmapBlock(physicalVolume: PhysicalVolume,
-                  val sectorNumber: Int)
-extends HasChecksum with SectorBasedChecksum with BitHelper {
-
-  val sector = physicalVolume.sector(sectorNumber)
-  def sectorSize = physicalVolume.bytesPerSector
-
-  def storedChecksum        = sector.int32At(0)
-  def computedChecksum: Int = computeChecksum(0)
-
-  def freeBlockNumbers: List[Int] = countBitmapBitsWith(bitsSetIn _)
-  def usedBlockNumbers: List[Int] = countBitmapBitsWith(bitsClearIn _)
-  private def countBitmapBitsWith(countFunc: Int => List[Int]) = {
-    var result: List[Int] = Nil
-    var currentBlockOffset = 2
-    for (fieldIndex <- 4 until sectorSize by 4) {
-      val mask = sector.int32At(fieldIndex)
-      val bitsSet = countFunc(mask).map(n => n + currentBlockOffset)
-      result = result ++ bitsSet
-      currentBlockOffset += 32
-    }
-    result.filter(n => n < physicalVolume.numSectorsTotal)
-  }
-}
-
-/**
  * A logical volume based on an underlying physical volume.
  *
  * @constructor creates a logical volume instance with a physical volume
@@ -340,7 +52,7 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
   /**
    * This class represents the boot block on an Amiga volume.
    */
-  class BootBlock extends HasChecksum with BitHelper {
+  protected class BootBlock extends HasChecksum with BitHelper {
     import BootBlock._
 
     private def flags = physicalVolume(3) & 0x07
@@ -379,39 +91,34 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
    * @constructor creates a root block instance for the specified sector
    * @param sectorNumber the sector number
    */
-  class RootBlock(sectorNumber: Int)
-  extends DirectoryBlock(physicalVolume, sectorNumber) {
+  protected class RootBlock(sectorNumber: Int)
+  extends HeaderBlock(physicalVolume, sectorNumber)
+  with DirectoryLike {
 
     def highSeq         = sector.int32At(8)
     def firstData       = sector.int32At(16)
-    // hash table data from 24 to (<sector size> - 200)
 
     def bitmapIsValid: Boolean = {
-      (sector.int32At(sectorSize - 200) == 0xffffffff)
+      (sector.int32At(sector.sizeInBytes - 200) == 0xffffffff)
     }
     def bitmapBlocks: List[BitmapBlock] = {
       var result: List[BitmapBlock] = Nil
-      val baseOffset = sectorSize - 196
+      val baseOffset = sector.sizeInBytes - 196
       for (i <- 0 until 25) {
         val bitmapBlockId = sector.int32At(baseOffset + i * 4)
         if (bitmapBlockId > 0) result ::= new BitmapBlock(physicalVolume, bitmapBlockId)
       }
       result.reverse
     }
-    def lastModifiedRoot: Date = {
-      AmigaDosDate(sector.int32At(sectorSize - 92),
-                   sector.int32At(sectorSize - 88),
-                   sector.int32At(sectorSize - 84)).toDate
-    }
     def lastModifiedDisk: Date = {
-      AmigaDosDate(sector.int32At(sectorSize - 40),
-                   sector.int32At(sectorSize - 36),
-                   sector.int32At(sectorSize - 32)).toDate
+      AmigaDosDate(sector.int32At(sector.sizeInBytes - 40),
+                   sector.int32At(sector.sizeInBytes - 36),
+                   sector.int32At(sector.sizeInBytes - 32)).toDate
     }
     def fsCreationTime: Date = {
-      AmigaDosDate(sector.int32At(sectorSize - 28),
-                   sector.int32At(sectorSize - 24),
-                   sector.int32At(sectorSize - 20)).toDate
+      AmigaDosDate(sector.int32At(sector.sizeInBytes - 28),
+                   sector.int32At(sector.sizeInBytes - 24),
+                   sector.int32At(sector.sizeInBytes - 20)).toDate
     }
   }
 

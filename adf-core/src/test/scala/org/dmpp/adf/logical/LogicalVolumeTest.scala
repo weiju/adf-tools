@@ -81,7 +81,7 @@ object LogicalVolumeSpec extends Specification {
       logicalVolume.rootBlock.firstData must_== 0
       logicalVolume.rootBlock.storedChecksum must_== 0xf1dd3b47
       logicalVolume.rootBlock.bitmapIsValid must beTrue
-      formatted(logicalVolume.rootBlock.lastModifiedRoot) must_== "1989-08-17 18:21:31.480"
+      formatted(logicalVolume.rootBlock.lastModified) must_== "1989-08-17 18:21:31.480"
       formatted(logicalVolume.rootBlock.lastModifiedDisk) must_== "1996-10-30 21:24:38.340"
       formatted(logicalVolume.rootBlock.fsCreationTime) must_== "1989-08-16 13:57:36.100"
       logicalVolume.rootBlock.secondaryType must_== BlockType.StRoot
@@ -100,12 +100,13 @@ object LogicalVolumeSpec extends Specification {
 
       // debugging
       for (block <- logicalVolume.rootBlock.hashtableEntries) {
-        printf("sector: %d, pr. type: %d, sec. type: %d, name: %s, next: %d\n",
+        printf("sector: %d, pr. type: %d, sec. type: %d, name: %s, next: %d, comment: '%s'\n",
                block.sectorNumber,
                block.primaryType,
                block.secondaryType,
                block.name,
-               block.nextInHashBucket)
+               block.nextInHashBucket,
+               block.comment)
       }
     }
     "root block should return valid block numbers for valid file names" in {

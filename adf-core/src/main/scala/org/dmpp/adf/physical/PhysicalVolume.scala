@@ -37,8 +37,13 @@ import org.dmpp.adf.util._
  * just a view onto the disk image memory with a defined size and position.
  * Individual bytes can be read/written by accessing it like an array of
  * bytes.
+ *
+ * @constructor creates a sector from a section of a byte array
+ * @param data the underlying byte array
+ * @param offset sector offset
+ * @param sizeInBytes sector size in bytes
  */
-class Sector(data: Array[Byte], offset: Int, sizeInBytes: Int) extends BitHelper {
+class Sector(data: Array[Byte], offset: Int, val sizeInBytes: Int) extends BitHelper {
 
   /**
    * Retrieves the data byte at position byteNum.
@@ -66,11 +71,21 @@ class Sector(data: Array[Byte], offset: Int, sizeInBytes: Int) extends BitHelper
    * Returns the 32 bit integer at the specified position.
    *
    * @param byteNum the position of the data byte
-   * @return the specified data byte
+   * @return the specified 32 bit int value
    */
-  def int32At(byteNum: Int) = {
+  def int32At(byteNum: Int): Int = {
     makeInt32(data(offset + byteNum),     data(offset + byteNum + 1),
               data(offset + byteNum + 2), data(offset + byteNum + 3))
+  }
+
+  /**
+   * Returns the unsigned 16 bit integer at the specified position.
+   *
+   * @param byteNum the position of the data byte
+   * @return the specified 16 bit unsigned int value
+   */
+  def int16At(byteNum: Int): Int = {
+    makeInt16(data(offset + byteNum), data(offset + byteNum + 1))
   }
 }
 

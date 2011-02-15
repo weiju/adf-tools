@@ -92,6 +92,12 @@ trait BitHelper {
     ((byte0 << 24) & 0xff000000) | ((byte1 << 16) & 0xff0000) |
       ((byte2 << 8) & 0xff00) | (byte3 & 0xff)
   }
+
+  /**
+   * Given two byte values (from most significant to least significant),
+   * join them into a 16-bit unsigned integer value.
+   */
+  def makeInt16(byte0: Int, byte1: Int) = ((byte0 << 8) & 0xff00) | (byte1 & 0xff)
 }
 
 /**

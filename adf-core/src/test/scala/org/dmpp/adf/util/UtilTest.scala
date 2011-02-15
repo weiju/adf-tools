@@ -58,6 +58,14 @@ object UtilSpec extends Specification {
         List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
              17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
     }
+    "make an unsigned 32 bit int" in {
+      MyBitHelper.makeInt32(0xff, 0xfe, 0xfd, 0xfc) must_== 0xfffefdfc
+      MyBitHelper.makeInt32(0x10, 0xfe, 0x20, 0xff) must_== 0x10fe20ff
+    }
+    "make an unsigned 16 bit int" in {
+      MyBitHelper.makeInt16(0xff, 0xfe) must_== 0xfffe
+      MyBitHelper.makeInt16(0x10, 0xfe) must_== 0x10fe
+    }
   }
   "UnsignedInt32" should {
     import UnsignedInt32Conversions._
