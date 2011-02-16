@@ -48,6 +48,11 @@ object BlockType {
   val StLinkFile = -4
 }
 
+trait LogicalBlock {
+  def physicalVolume: PhysicalVolume
+  def sector: Sector
+}
+
 /**
  * Symbolic constants for header blocks.
  */
@@ -65,7 +70,7 @@ object HeaderBlock {
  */
 abstract class HeaderBlock(val physicalVolume: PhysicalVolume,
                            val sectorNumber: Int)
-extends ReadsBcplStrings with SectorBasedChecksum {
+extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   import HeaderBlock._
 
   val sector          = physicalVolume.sector(sectorNumber)
@@ -171,7 +176,7 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
  */
 class BitmapBlock(val physicalVolume: PhysicalVolume,
                   val sectorNumber: Int)
-extends HasChecksum with SectorBasedChecksum
+extends LogicalBlock with HasChecksum with SectorBasedChecksum
 with BitHelper {
 
   val sector = physicalVolume.sector(sectorNumber)

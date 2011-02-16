@@ -31,25 +31,6 @@ import org.dmpp.adf.util._
 import org.dmpp.adf.physical._
 
 /**
- * Interface to define access to the sector and the physical
- * volume.
- */
-trait SectorBased {
-
-  /**
-   * Returns the physical volume.
-   * @return the underlying physical volume.
-   */
-  def physicalVolume: PhysicalVolume
-
-  /**
-   * Returns the sector this block is based on.
-   * @return the Sector instance
-   */
-  def sector: Sector
-}
-
-/**
  * An interface to indicate an object that stores and computes a checksum
  */
 trait HasChecksum {
@@ -71,7 +52,7 @@ trait HasChecksum {
  * A mixin trait which provides the standard checksum algorithm. This
  * algorithm can be used for all blocks except the boot block.
  */
-trait SectorBasedChecksum extends SectorBased {
+trait SectorBasedChecksum { self : LogicalBlock =>
 
   /**
    * Standard checksum algorithm.
@@ -109,7 +90,8 @@ case class ProtectionFlags(flags: Int) {
 /**
  * Trait to decorate blocks that have access masks and user/group ids.
  */
-trait HasAccessRights extends SectorBased {
+trait HasAccessRights { self : DirectoryEntryBlock =>
+
   /**
    * Returns the user id.
    * @return user id
@@ -132,7 +114,7 @@ trait HasAccessRights extends SectorBased {
 /**
  * Trait to decorate blocks that are reading a BCPL string field.
  */
-trait ReadsBcplStrings extends SectorBased {
+trait ReadsBcplStrings { self : HeaderBlock =>
 
   /**
    * Read the BCPL string at the specified position.
@@ -154,7 +136,7 @@ object HasComment {
   val CommentMaxChars = 79
 }
 
-trait HasComment extends ReadsBcplStrings {
+trait HasComment extends ReadsBcplStrings { self : HeaderBlock =>
 
   import HasComment._
 
@@ -174,7 +156,8 @@ object DirectoryLike {
   val OffsetHashtable     = 24
 }
 
-trait DirectoryLike extends SectorBased {
+trait DirectoryLike { self : HeaderBlock =>
+
   import DirectoryLike._
 
   /**
