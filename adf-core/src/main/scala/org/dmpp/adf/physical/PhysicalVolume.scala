@@ -105,6 +105,8 @@ class Sector(data: Array[Byte], offset: Int, val sizeInBytes: Int) extends BitHe
  */
 trait PhysicalVolume {
 
+  def writeToOutputStream(out: OutputStream)
+
   /**
    * Retrieves this volume's size.
    *
@@ -198,6 +200,8 @@ class DoubleDensityDisk(data: Array[Byte]) extends PhysicalVolume with BitHelper
     data(byteNum + 2) = ((value >>> 8) & 0xff).asInstanceOf[Byte]
     data(byteNum + 3) = (value & 0xff).asInstanceOf[Byte]
   }
+
+  def writeToOutputStream(out: OutputStream) = out.write(data)
 }
 
 /**

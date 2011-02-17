@@ -30,6 +30,7 @@ package org.dmpp.adf.logical
 import java.util.Date
 import org.dmpp.adf.util._
 import org.dmpp.adf.physical._
+import java.io._
 
 /**
  * A factory to create logical volume instances.
@@ -77,6 +78,7 @@ object LogicalVolume {
 class LogicalVolume(physicalVolume: PhysicalVolume) {
   import LogicalVolume._
 
+  def writeToOutputStream(out: OutputStream) = physicalVolume.writeToOutputStream(out)
   def sizeInBytes = physicalVolume.sizeInBytes
   def apply(byteNum: Int) = physicalVolume(byteNum)
   def sector(sectorNum: Int) = physicalVolume.sector(sectorNum)
