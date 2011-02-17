@@ -41,6 +41,9 @@ trait HasChecksum {
    */
   def storedChecksum: Int
 
+  /** Recomputes this block's checksum. */
+  def recomputeChecksum
+
   /**
    * Computes a checksum in this block.
    * @return the checksum based on this object' data
@@ -56,7 +59,6 @@ trait SectorBasedChecksum { self : LogicalBlock =>
 
   /**
    * Standard checksum algorithm.
-   *
    * @param checksumFieldOffset the offset of the field containing the stored
    *        checksum
    * @return the checksum based on this object' data
@@ -130,6 +132,13 @@ trait ReadsBcplStrings { self : HeaderBlock =>
     }
     builder.toString
   }
+  def setBcplStringAt(offset: Int, maxChars: Int, str: String) = {
+    val nameLength = scala.math.min(str.length, maxChars)
+    sector(offset) = nameLength
+    for (i <- 0 until nameLength) {
+      sector(offset + 1 + i) = str.charAt(i).asInstanceOf[Byte]
+    }
+  }
 }
 
 object HasComment {
@@ -142,7 +151,6 @@ trait HasComment extends ReadsBcplStrings { self : HeaderBlock =>
 
   /**
    * Returns the comment field stored in this block.
-   *
    * @return this block's comment
    */
   def comment: String = bcplStringAt(sector.sizeInBytes - 184, CommentMaxChars)
@@ -162,15 +170,19 @@ trait DirectoryLike { self : HeaderBlock =>
 
   /**
    * Returns the size of the directory's hash table.
-   *
    * @return hash table size
    */
   def hashtableSize   = sector.int32At(OffsetHashtableSize)
 
   /**
+   * Sets the hash table size.
+   * @param newSize new hash table size
+   */
+  def hashtableSize_=(newSize:Int) = sector.setInt32At(OffsetHashtableSize, newSize)
+
+  /**
    * Returns the list of all valid header blocks contained in this directory's
    * hash table.
-   *
    * @return all header blocks in the directory
    */
   def hashtableEntries: List[DirectoryEntryBlock] = {
@@ -193,7 +205,6 @@ trait DirectoryLike { self : HeaderBlock =>
 
   /**
    * Returns a header block for a given file/directory name in this directory.
-   *
    * @param the file/directory name
    * @return the block name or 0 if not found
    */
@@ -216,7 +227,6 @@ trait DirectoryLike { self : HeaderBlock =>
 
   /**
    * Returns a block number for a given file/directory name in this directory.
-   *
    * @param the file/directory name
    * @return the block name or 0 if not found
    */

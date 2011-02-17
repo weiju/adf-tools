@@ -55,7 +55,7 @@ object PhysicalVolumeSpec extends Specification {
     }
 
     "data size should be correct" in {
-      DoubleDensityDisk.ImageSize must_== 901120
+      disk.sizeInBytes must_== DoubleDensityDisk.ImageSize
       disk.numSectorsTotal must_== 1760
       disk.bytesPerSector  must_== 512
     }
@@ -87,6 +87,21 @@ object PhysicalVolumeSpec extends Specification {
     "access data bytes directly" in {
       disk(42) = 42
       disk(42) must_== 42
+    }
+  }
+
+  "PhysicalVolumeFactory" should {
+    "create an empty double density disk" in {
+      val disk = PhysicalVolumeFactory.createEmptyDoubleDensityDisk
+      disk.sizeInBytes must_== DoubleDensityDisk.ImageSize
+      // check boot block
+      for (i <- 0 until 1024) {
+        disk(i) must_== 0
+      }
+      // check root block
+      for (i <- 0 until 1024) {
+        disk(512 * 880 + i) must_== 0
+      }
     }
   }
 }

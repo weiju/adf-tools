@@ -78,6 +78,13 @@ class Sector(data: Array[Byte], offset: Int, val sizeInBytes: Int) extends BitHe
               data(offset + byteNum + 2), data(offset + byteNum + 3))
   }
 
+  def setInt32At(byteNum: Int, value: Int) {
+    data(offset + byteNum)     = ((value >>> 24) & 0xff).asInstanceOf[Byte]
+    data(offset + byteNum + 1) = ((value >>> 16) & 0xff).asInstanceOf[Byte]
+    data(offset + byteNum + 2) = ((value >>> 8) & 0xff).asInstanceOf[Byte]
+    data(offset + byteNum + 3) = (value & 0xff).asInstanceOf[Byte]
+  }
+
   /**
    * Returns the unsigned 16 bit integer at the specified position.
    *
@@ -97,6 +104,13 @@ class Sector(data: Array[Byte], offset: Int, val sizeInBytes: Int) extends BitHe
  * calculations that span across multiple sectors simpler.
  */
 trait PhysicalVolume {
+
+  /**
+   * Retrieves this volume's size.
+   *
+   * @return this volume's size in bytes
+   */
+  def sizeInBytes: Int
 
   /**
    * Retrieves the total number of sectors.
@@ -137,11 +151,11 @@ trait PhysicalVolume {
 
   /**
    * Returns the 32 bit integer at the specified position.
-   *
    * @param byteNum the position of the data byte
    * @return the specified data byte
    */
   def int32At(byteNum: Int): Int
+  def setInt32At(byteNum: Int, newValue: Int)
 }
 
 /**
@@ -166,6 +180,7 @@ object DoubleDensityDisk {
 class DoubleDensityDisk(data: Array[Byte]) extends PhysicalVolume with BitHelper {
   import DoubleDensityDisk._
 
+  def sizeInBytes: Int = data.length
   def numSectorsTotal: Int = NumSectorsTotal
   def apply(byteNum: Int): Byte = data(byteNum)
   def update(byteNum: Int, value: Byte) = data(byteNum) = value
@@ -177,6 +192,12 @@ class DoubleDensityDisk(data: Array[Byte]) extends PhysicalVolume with BitHelper
     makeInt32(data(byteNum),     data(byteNum + 1),
               data(byteNum + 2), data(byteNum + 3))
   }
+  def setInt32At(byteNum: Int, value: Int) {
+    data(byteNum)     = ((value >>> 24) & 0xff).asInstanceOf[Byte]
+    data(byteNum + 1) = ((value >>> 16) & 0xff).asInstanceOf[Byte]
+    data(byteNum + 2) = ((value >>> 8) & 0xff).asInstanceOf[Byte]
+    data(byteNum + 3) = (value & 0xff).asInstanceOf[Byte]
+  }
 }
 
 /**
@@ -185,6 +206,9 @@ class DoubleDensityDisk(data: Array[Byte]) extends PhysicalVolume with BitHelper
  */
 object PhysicalVolumeFactory {
 
+  def createEmptyDoubleDensityDisk = {
+    new DoubleDensityDisk(new Array[Byte](DoubleDensityDisk.ImageSize))
+  }
   /**
    * Creates a physical volume from a double density ADF input stream.
    * 

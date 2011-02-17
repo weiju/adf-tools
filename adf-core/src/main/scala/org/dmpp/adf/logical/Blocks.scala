@@ -82,11 +82,23 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   def primaryType     = sector.int32At(0)
 
   /**
+   * Sets the block's primary type.
+   * @param newType the new type
+   */
+  def primaryType_=(newType: Int) = sector.setInt32At(0, newType)
+
+  /**
    * Returns this block's secondary type.
-   *
    * @return the secondary type
    */
   def secondaryType   = sector.int32At(sector.sizeInBytes - 4)
+
+  /**
+   * Sets the block's secondary type.
+   * @param newType the new type
+   */
+  def secondaryType_=(newType: Int) = sector.setInt32At(sector.sizeInBytes - 4,
+                                                         newType)
 
   /**
    * Returns a pointer to this block's header.
@@ -96,21 +108,26 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
 
   /**
    * Returns the name field stored in this block.
-   *
    * @return this block's name
    */
   def name: String = bcplStringAt(sector.sizeInBytes - 80, NameMaxChars)
 
   /**
+   * Sets the name field for this block.
+   * @param newName this block's new name
+   */
+  def name_=(newName: String) {
+    setBcplStringAt(sector.sizeInBytes - 80, NameMaxChars, newName)
+  }
+
+  /**
    * Returns the next block in the hash bucket list.
-   *
    * @return next block in hash bucket list
    */
   def nextInHashBucket = sector.int32At(sector.sizeInBytes - 16)
 
   /**
    * Returns the last modification date.
-   *
    * @return last modification date
    */
   def lastModified: Date = {
@@ -120,6 +137,7 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   }
   def storedChecksum  = sector.int32At(20)
   def computedChecksum: Int = computeChecksum(20)
+  def recomputeChecksum = sector.setInt32At(20, computedChecksum)
 }
 
 /**
@@ -167,6 +185,12 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
 }
 
 /**
+ * Exception that is thrown when allocate is called on an already allocated
+ * block.
+ */
+class BlockAlreadyAllocated extends Exception
+
+/**
  * A bitmap block stores information about free and used blocks in the
  * file system.
  *
@@ -181,21 +205,65 @@ with BitHelper {
 
   val sector = physicalVolume.sector(sectorNumber)
   def sectorSize = physicalVolume.bytesPerSector
-
   def storedChecksum        = sector.int32At(0)
+  def recomputeChecksum = sector.setInt32At(0, computedChecksum)
   def computedChecksum: Int = computeChecksum(0)
 
-  def freeBlockNumbers: List[Int] = countBitmapBitsWith(bitsSetIn _)
-  def usedBlockNumbers: List[Int] = countBitmapBitsWith(bitsClearIn _)
+  def initialize {
+    for (i <- 4 until sectorSize) {
+      sector(i) = 0xff.asInstanceOf[Byte]
+    }
+    recomputeChecksum
+  }
+
+  /**
+   * Marks the bit with the specified relative index as used.
+   * @param relativeIndex relative index within this bitmap
+   */
+  def allocate(relativeIndex: Int) {
+    if (isAllocated(relativeIndex)) throw new BlockAlreadyAllocated
+    val bitClearMask = (~byteMaskForBit(bitNumForIndex(relativeIndex))) & 0xff
+    sector(4 + byteNumForIndex(relativeIndex)) &= bitClearMask
+    recomputeChecksum
+  }
+  private def byteMaskForBit(bitnum: Int): Byte = {
+    ((1 << (7 - bitnum)) & 0xff).asInstanceOf[Byte]
+  }
+  def free(relativeIndex: Int) {
+    val mask = byteMaskForBit(bitNumForIndex(relativeIndex))
+    sector(4 + byteNumForIndex(relativeIndex)) |= mask
+    recomputeChecksum
+  }
+
+  /**
+   * Determine whether the block at relativeIndex is allocated.
+   * @param relativeIndex the block index
+   * @return true if allocated, false otherwise
+   */
+  def isAllocated(relativeIndex: Int): Boolean = {
+    val mask = byteMaskForBit(bitNumForIndex(relativeIndex))
+    (sector(4 + byteNumForIndex(relativeIndex)) & mask) == 0
+  }
+  /**
+   * Determine whether the block at relativeIndex is free.
+   * @param relativeIndex the block index
+   * @return true if free, false otherwise
+   */
+  def isFree(relativeIndex: Int): Boolean = !isAllocated(relativeIndex)
+  private def byteNumForIndex(relativeIndex: Int) = relativeIndex / 8
+  private def bitNumForIndex(relativeIndex: Int) = relativeIndex % 8
+
+  def freeBlockIndexes: List[Int] = countBitmapBitsWith(bitsSetIn _)
+  def usedBlockIndexes: List[Int] = countBitmapBitsWith(bitsClearIn _)
+
   private def countBitmapBitsWith(countFunc: Int => List[Int]) = {
     var result: List[Int] = Nil
-    var currentBlockOffset = 2
     for (fieldIndex <- 4 until sectorSize by 4) {
+      val currentBlockOffset = (fieldIndex - 4) * (32 / 4)
       val mask = sector.int32At(fieldIndex)
       val bitsSet = countFunc(mask).map(n => n + currentBlockOffset)
       result = result ++ bitsSet
-      currentBlockOffset += 32
     }
-    result.filter(n => n < physicalVolume.numSectorsTotal)
+    result
   }
 }

@@ -46,6 +46,34 @@ object LogicalVolumeSpec extends Specification {
   var physicalVolume: PhysicalVolume = null
   var logicalVolume: LogicalVolume = null
 
+  "LogicalVolumeFactory" should {
+
+    "create an empty volume" in {
+      val volume = LogicalVolumeFactory.createEmptyDoubleDensityDisk
+      checkForValidBootBlock(volume)      
+      checkForValidRootBlock(volume)
+      volume.usedBlockNumbers must_== List(880, 881)
+    }
+
+    def checkForValidBootBlock(volume: LogicalVolume) {
+      volume.sizeInBytes must_== DoubleDensityDisk.ImageSize
+      volume(0).asInstanceOf[Char] must_== 'D'
+      volume(1).asInstanceOf[Char] must_== 'O'
+      volume(2).asInstanceOf[Char] must_== 'S'
+      for (i <- 3 until 1024) volume(i) must_== 0
+    }
+    def checkForValidRootBlock(volume: LogicalVolume) {
+      volume.rootBlock.primaryType must_== BlockType.PtShort
+      volume.rootBlock.secondaryType must_== BlockType.StRoot
+      volume.rootBlock.bitmapIsValid must beTrue
+      volume.rootBlock.name must_== "Empty"
+      volume.rootBlock.hashtableSize must_== 0x48 // = 72
+      volume.rootBlock.storedChecksum must_== volume.rootBlock.computedChecksum
+      volume.rootBlock.bitmapBlockIdAt(0) must_== 881
+      volume.rootBlock.bitmapBlockIdAt(1) must_== 0
+    }
+  }
+
   "LogicalVolume" should {
 
     doBefore {
@@ -97,7 +125,7 @@ object LogicalVolumeSpec extends Specification {
       logicalVolume.rootBlock.hashtableEntries.length must_== 24
       logicalVolume.rootBlock.hashtableEntries.find(e => e.name == "c") must_!= None
       logicalVolume.rootBlock.hashtableEntries.find(e => e.name == "System") must_!= None
-
+/*
       // debugging
       for (block <- logicalVolume.rootBlock.hashtableEntries) {
         printf("sector: %d, pr. type: %d, sec. type: %d, name: %s, next: %d, comment: '%s'\n",
@@ -107,7 +135,7 @@ object LogicalVolumeSpec extends Specification {
                block.name,
                block.nextInHashBucket,
                block.comment)
-      }
+      }*/
     }
     "root block should return valid block numbers for valid file names" in {
       logicalVolume.rootBlock.blockNumberForName("System") must_== 881
@@ -187,12 +215,10 @@ object LogicalVolumeSpec extends Specification {
       bitmapBlock.computedChecksum must_== bitmapBlock.storedChecksum
     }
     "bitmap block computes the free blocks" in {
-      val bitmapBlock = logicalVolume.rootBlock.bitmapBlocks.head
-      bitmapBlock.freeBlockNumbers.length must_== 31
+      logicalVolume.freeBlockNumbers.length must_== 31
     }
     "bitmap block computes the used blocks" in {
-      val bitmapBlock = logicalVolume.rootBlock.bitmapBlocks.head
-      bitmapBlock.usedBlockNumbers.length must_== 1727
+      logicalVolume.usedBlockNumbers.length must_== 1727
     }
   }
   def formatted(date: Date) = {

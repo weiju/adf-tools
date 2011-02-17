@@ -32,13 +32,54 @@ import org.dmpp.adf.util._
 import org.dmpp.adf.physical._
 
 /**
- * A logical volume based on an underlying physical volume.
+ * A factory to create logical volume instances.
+ */
+object LogicalVolumeFactory {
+  /**
+   * Creates an empty, non-bootable DD "formatted" disk.
+   */
+  def createEmptyDoubleDensityDisk = {
+    val physicalVolume = PhysicalVolumeFactory.createEmptyDoubleDensityDisk
+    val logicalVolume = new LogicalVolume(physicalVolume)
+    logicalVolume.sector(0)(0) = 'D'
+    logicalVolume.sector(0)(1) = 'O'
+    logicalVolume.sector(0)(2) = 'S'
+    logicalVolume.rootBlock.primaryType = BlockType.PtShort
+    logicalVolume.rootBlock.secondaryType = BlockType.StRoot
+    logicalVolume.rootBlock.setBitmapIsValid
+    logicalVolume.rootBlock.name = "Empty"
+    logicalVolume.rootBlock.hashtableSize = 0x48
+    logicalVolume.rootBlock.setBitmapBlockIdAt(0, 881)
+    logicalVolume.rootBlock.recomputeChecksum
+
+    val bitmapBlock = new BitmapBlock(physicalVolume, 881)
+    bitmapBlock.initialize
+    logicalVolume.allocate(880) // root block
+    logicalVolume.allocate(881) // bitmap block
+    logicalVolume
+  }
+}
+
+/**
+ * Symbolic constants for logical volumes.
+ */
+object LogicalVolume {
+  val RootSectorNumber   = 880
+}
+
+/**
+ * A logical volume based on an underlying physical volume. On this
+ * layer, we talk about blocks, which are effectively typed sectors.
  *
  * @constructor creates a logical volume instance with a physical volume
  * @param physicalVolume the physical volume the logical volume is based on
  */
 class LogicalVolume(physicalVolume: PhysicalVolume) {
   import LogicalVolume._
+
+  def sizeInBytes = physicalVolume.sizeInBytes
+  def apply(byteNum: Int) = physicalVolume(byteNum)
+  def sector(sectorNum: Int) = physicalVolume.sector(sectorNum)
 
   /**
    * Symbolic constants for boot blocks.
@@ -61,8 +102,9 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
                           flagSet(flags, FlagDirCacheAndIntl)
     def useDirCache     = flagSet(flags, FlagDirCacheAndIntl)
 
-    def storedChecksum  = physicalVolume.int32At(4)
     def rootBlockNumber = physicalVolume.int32At(8)
+    def storedChecksum  = physicalVolume.int32At(4)
+    def recomputeChecksum = physicalVolume.setInt32At(4, computedChecksum)
 
     def computedChecksum: Int = {
       import UnsignedInt32Conversions._
@@ -78,22 +120,18 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     }
   }
 
-  /**
-   * Symbolic constants for logical volumes.
-   */
-  object LogicalVolume {
-    val RootSectorNumber   = 880
+  object RootBlock {
+    val MaxBitmapBlocks = 25
   }
-
   /**
    * This class represents an Amiga volume's root block.
-   *
    * @constructor creates a root block instance for the specified sector
    * @param sectorNumber the sector number
    */
   protected class RootBlock(sectorNumber: Int)
   extends HeaderBlock(physicalVolume, sectorNumber)
   with DirectoryLike {
+    import RootBlock._
 
     def highSeq         = sector.int32At(8)
     def firstData       = sector.int32At(16)
@@ -101,11 +139,25 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     def bitmapIsValid: Boolean = {
       (sector.int32At(sector.sizeInBytes - 200) == 0xffffffff)
     }
+    def setBitmapIsValid {
+      sector.setInt32At(sector.sizeInBytes - 200, 0xffffffff)
+    }
+    def bitmapBlockIdAt(index: Int) = {
+      sector.int32At(bitmapBlockBaseOffset + index * 4)
+    }
+    def setBitmapBlockIdAt(index: Int, bitmapBlockId: Int) = {
+      sector.setInt32At(bitmapBlockBaseOffset + index * 4, bitmapBlockId)
+    }
+    private def bitmapBlockBaseOffset = sector.sizeInBytes - 196
+    def bitmapBlockAt(index: Int): Option[BitmapBlock] = {
+      val bitmapBlockId = bitmapBlockIdAt(index)
+      if (bitmapBlockId <= 0) None
+      else Some(new BitmapBlock(physicalVolume, bitmapBlockId))
+    }
     def bitmapBlocks: List[BitmapBlock] = {
       var result: List[BitmapBlock] = Nil
-      val baseOffset = sector.sizeInBytes - 196
-      for (i <- 0 until 25) {
-        val bitmapBlockId = sector.int32At(baseOffset + i * 4)
+      for (i <- 0 until MaxBitmapBlocks) {
+        val bitmapBlockId = bitmapBlockIdAt(i)
         if (bitmapBlockId > 0) result ::= new BitmapBlock(physicalVolume, bitmapBlockId)
       }
       result.reverse
@@ -127,4 +179,27 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
 
   /** This volumes's root block. */
   val rootBlock = new RootBlock(RootSectorNumber)
+
+  /**
+   * Marks the specified block as used.
+   * @param blockNumber the block number to mark as used
+   */
+  def allocate(blockNumber: Int) {
+    val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
+    bitmapBlock0.allocate(blockNumber - 2)
+  }
+
+  /**
+   * Retrieve the free block numbers on this logical volume.
+   */
+  def freeBlockNumbers: List[Int] = {
+    val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
+    bitmapBlock0.freeBlockIndexes.filter(index =>
+      index < physicalVolume.numSectorsTotal - 2).map(index => index + 2)
+  }
+  def usedBlockNumbers: List[Int] = {
+    val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
+    bitmapBlock0.usedBlockIndexes.filter(index =>
+      index < physicalVolume.numSectorsTotal - 2).map(index => index + 2)
+  }
 }
