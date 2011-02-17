@@ -151,11 +151,21 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
       sector.setInt32At(bitmapBlockBaseOffset + index * 4, bitmapBlockId)
     }
     private def bitmapBlockBaseOffset = sector.sizeInBytes - 196
+
+    /**
+     * Returns the bitmap block at the specified index.
+     * @param index bitmap block index
+     * @return Some(BitmapBlock) if successful, None, otherwise
+     */
     def bitmapBlockAt(index: Int): Option[BitmapBlock] = {
       val bitmapBlockId = bitmapBlockIdAt(index)
       if (bitmapBlockId <= 0) None
       else Some(new BitmapBlock(physicalVolume, bitmapBlockId))
     }
+    /**
+     * Returns all the bitmap block of this file system.
+     * @return this filesystem's bitmap blocks
+     */
     def bitmapBlocks: List[BitmapBlock] = {
       var result: List[BitmapBlock] = Nil
       for (i <- 0 until MaxBitmapBlocks) {
@@ -164,11 +174,19 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
       }
       result.reverse
     }
+    /**
+     * Returns the last modification time of the disk.
+     * @return last modification time
+     */
     def lastModifiedDisk: Date = {
       AmigaDosDate(sector.int32At(sector.sizeInBytes - 40),
                    sector.int32At(sector.sizeInBytes - 36),
                    sector.int32At(sector.sizeInBytes - 32)).toDate
     }
+    /**
+     * Returns the creation time of the file system.
+     * @return file system creation time
+     */
     def fsCreationTime: Date = {
       AmigaDosDate(sector.int32At(sector.sizeInBytes - 28),
                    sector.int32At(sector.sizeInBytes - 24),
@@ -193,12 +211,18 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
 
   /**
    * Retrieve the free block numbers on this logical volume.
+   * @return free block numbers
    */
   def freeBlockNumbers: List[Int] = {
     val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
     bitmapBlock0.freeBlockIndexes.filter(index =>
       index < physicalVolume.numSectorsTotal - 2).map(index => index + 2)
   }
+
+  /**
+   * Retrieve the used block numbers on this logical volume.
+   * @return used block numbers
+   */
   def usedBlockNumbers: List[Int] = {
     val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
     bitmapBlock0.usedBlockIndexes.filter(index =>
