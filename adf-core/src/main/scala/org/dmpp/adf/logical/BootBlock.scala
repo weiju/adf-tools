@@ -49,11 +49,21 @@ class BootBlock(physicalVolume: PhysicalVolume) extends HasChecksum with BitHelp
 
   /**
    * Initializes an empty boot block.
+   * @param fileSystemType file system type
+   * @param isInternational use international mode, defaults to false
+   * @param useDirCache use dir cache, defaults to false
    */
-  def initialize {
+  def initialize(fileSystemType: String,
+                 isInternational: Boolean = false,
+                 useDirCache: Boolean = false) {
     physicalVolume(0) = 'D'
     physicalVolume(1) = 'O'
     physicalVolume(2) = 'S'
+    
+    var fsFlags = if (fileSystemType == "OFS") 0 else 1
+    if (isInternational && useDirCache) fsFlags += 4
+    else if (isInternational) fsFlags += 2
+    physicalVolume(3) = fsFlags.asInstanceOf[Byte]
   }
 
   def filesystemType  = if (flagClear(flags, FlagFFS)) "OFS" else "FFS"

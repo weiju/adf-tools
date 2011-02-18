@@ -46,6 +46,7 @@ object LogicalVolumeFactorySpec extends Specification {
       checkForValidRootBlock(volume)
       volume.usedBlockNumbers must_== List(880, 881)
       volume.name must_== "Empty"
+      volume.bootBlock.filesystemType must_== "FFS"
     }
 
     def checkForValidBootBlock(volume: LogicalVolume) {
@@ -53,7 +54,7 @@ object LogicalVolumeFactorySpec extends Specification {
       volume(0).asInstanceOf[Char] must_== 'D'
       volume(1).asInstanceOf[Char] must_== 'O'
       volume(2).asInstanceOf[Char] must_== 'S'
-      for (i <- 3 until 1024) volume(i) must_== 0
+      for (i <- 4 until 1024) volume(i) must_== 0
     }
     def checkForValidRootBlock(volume: LogicalVolume) {
       volume.rootBlock.primaryType must_== BlockType.PtShort

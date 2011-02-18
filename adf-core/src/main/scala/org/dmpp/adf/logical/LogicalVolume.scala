@@ -68,9 +68,12 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
 
   /**
    * Initializes this volume as an empty volume.
+   * @param name volume name
+   * @param filesystemType file system type, defaults to "FFS"
    */
-  def initialize(name: String) {
-    bootBlock.initialize
+  def initialize(name: String,
+                 filesystemType: String = "FFS") {
+    bootBlock.initialize(filesystemType)
     rootBlock.initialize(name)
     new BitmapBlock(physicalVolume, 881).initialize
     allocate(880) // root block
