@@ -27,9 +27,6 @@
  */
 package org.dmpp.adf.logical
 
-/**
- * Test cases for logical volumes.
- */
 import org.specs._
 import org.specs.runner.{ConsoleRunner, JUnit4}
 
@@ -38,6 +35,10 @@ import java.util.Date
 import java.text.SimpleDateFormat
 import org.dmpp.adf.physical._
 
+/**
+ * Test cases for logical volumes.
+ */
+
 class LogicalVolumeTest extends JUnit4(LogicalVolumeSpec)
 object LogicalVolumeSpecRunner extends ConsoleRunner(LogicalVolumeSpec)
 
@@ -45,35 +46,6 @@ object LogicalVolumeSpec extends Specification {
 
   var physicalVolume: PhysicalVolume = null
   var logicalVolume: LogicalVolume = null
-
-  "LogicalVolumeFactory" should {
-
-    "create an empty volume" in {
-      val volume = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
-      checkForValidBootBlock(volume)      
-      checkForValidRootBlock(volume)
-      volume.usedBlockNumbers must_== List(880, 881)
-      volume.name must_== "Empty"
-    }
-
-    def checkForValidBootBlock(volume: LogicalVolume) {
-      volume.sizeInBytes must_== DoubleDensityDisk.ImageSize
-      volume(0).asInstanceOf[Char] must_== 'D'
-      volume(1).asInstanceOf[Char] must_== 'O'
-      volume(2).asInstanceOf[Char] must_== 'S'
-      for (i <- 3 until 1024) volume(i) must_== 0
-    }
-    def checkForValidRootBlock(volume: LogicalVolume) {
-      volume.rootBlock.primaryType must_== BlockType.PtShort
-      volume.rootBlock.secondaryType must_== BlockType.StRoot
-      volume.rootBlock.bitmapIsValid must beTrue
-      volume.rootBlock.name must_== "Empty"
-      volume.rootBlock.hashtableSize must_== 0x48 // = 72
-      volume.rootBlock.storedChecksum must_== volume.rootBlock.computedChecksum
-      volume.rootBlock.bitmapBlockIdAt(0) must_== 881
-      volume.rootBlock.bitmapBlockIdAt(1) must_== 0
-    }
-  }
 
   "LogicalVolume" should {
 
