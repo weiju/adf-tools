@@ -68,11 +68,22 @@ trait DirectoryLike { self : HeaderBlock =>
   private def addToBucketRecursively(addTo: List[DirectoryEntryBlock],
                                      blockNumber: Int): List[DirectoryEntryBlock] = {
     if (isNonEmptyHashEntry(blockNumber)) {
-      val block = new DirectoryEntryBlock(physicalVolume, blockNumber)
+      val block = makeDirEntryBlock(blockNumber)
       addToBucketRecursively(block :: addTo, block.nextInHashBucket)
     } else addTo
   }
   private def isNonEmptyHashEntry(entry: Int) = entry > 0
+  private def makeDirEntryBlock(blockNumber: Int) = {
+    val header = new DirectoryEntryBlock(physicalVolume, blockNumber)
+    header.secondaryType match {
+      case BlockType.StUserDir =>
+        new UserDirectoryBlock(physicalVolume, blockNumber)
+      case BlockType.StFile    =>
+        new FileHeaderBlock(physicalVolume, blockNumber)
+      case _ =>
+        throw new UnsupportedOperationException("unsupported secondary header type")
+    }
+  }
 
   /**
    * Returns a header block for a given file/directory name in this directory.
@@ -82,18 +93,7 @@ trait DirectoryLike { self : HeaderBlock =>
   def blockForName(name: String): Option[DirectoryEntryBlock] = {
     val blockNumber = blockNumberForName(name)
     if (blockNumber == 0) None
-    else {
-      val header = new DirectoryEntryBlock(physicalVolume, blockNumber)
-
-      header.secondaryType match {
-        case BlockType.StUserDir =>
-          Some(new UserDirectoryBlock(physicalVolume, blockNumber))
-        case BlockType.StFile    =>
-          Some(new FileHeaderBlock(physicalVolume, blockNumber))
-        case _ =>
-          throw new UnsupportedOperationException("unsupported secondary header type")
-      }
-    }
+    else Some(makeDirEntryBlock(blockNumber))
   }
 
   /**

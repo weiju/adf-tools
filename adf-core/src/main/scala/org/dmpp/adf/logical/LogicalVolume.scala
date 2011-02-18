@@ -83,8 +83,6 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
   def writeToOutputStream(out: OutputStream) = physicalVolume.writeToOutputStream(out)
   def sizeInBytes = physicalVolume.sizeInBytes
   def apply(byteNum: Int) = physicalVolume(byteNum)
-  //def sector(sectorNum: Int) = physicalVolume.sector(sectorNum)
-
 
   /** This volume's boot block. */
   val bootBlock = new BootBlock(physicalVolume)

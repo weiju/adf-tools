@@ -27,38 +27,28 @@
  */
 package org.dmpp.adf.app
 
+import java.io._
+
 import org.specs._
 import org.specs.runner.{ConsoleRunner, JUnit4}
 
-import java.io._
-import org.dmpp.adf.app._
+class UserVolumeFactoryTest extends JUnit4(UserVolumeFactorySpec)
+object UserVolumeFactorySpecRunner extends ConsoleRunner(UserVolumeFactorySpec)
 
-/**
- * Test cases for user volumes.
- */
-class UserVolumeTest extends JUnit4(UserVolumeSpec)
-object UserVolumeSpecRunner extends ConsoleRunner(UserVolumeSpec)
-
-object UserVolumeSpec extends Specification {
-  "UserVolume" should {
-    val workbenchFile = new File(getClass.getResource("/wbench1.3.adf").getFile)
-    var emptyDisk: UserVolume = null
-    var workbenchDisk: UserVolume = null
-    doBefore {
-      workbenchDisk = UserVolumeFactory.readFromFile(workbenchFile)
-      emptyDisk = UserVolumeFactory.createEmptyDoubleDensityDisk()
+object UserVolumeFactorySpec extends Specification {
+  "UserVolumeFactory" should {
+    "create an empty volume" in {
+      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
+      empty.name must_== "Empty"
     }
-    "read workbench root directory" in {
-      workbenchDisk.name must_== "Workbench1.3"
-      val rootdir = workbenchDisk.rootDirectory
-      rootdir.isDirectory must beTrue
-      rootdir.name must_== "Workbench1.3"
-      rootdir.list.length must_== 24
-/*
-      for (direntry <- rootdir.list) {
-        printf("File: %s dir: %b file: %b\n",
-               direntry.name, direntry.isDirectory, direntry.isFile)
-      }*/
+    "create an empty volume with a name" in {
+      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk("MyDisk")
+      empty.name must_== "MyDisk"
+    }
+    "read a workbench" in {
+      val workbenchFile = new File(getClass.getResource("/wbench1.3.adf").getFile)
+      val workbench = UserVolumeFactory.readFromFile(workbenchFile)
+      workbench.name must_== "Workbench1.3"
     }
   }
 }

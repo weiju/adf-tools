@@ -63,6 +63,78 @@ object UserVolumeFactory {
 }
 
 /**
+ * General interface of a file.
+ */
+trait DosFile {
+  /**
+   * Determine whether this file is a directory.
+   * @return true if directory, false otherwise
+   */
+  def isDirectory: Boolean
+
+  /**
+   * Determine whether this file is a regular file.
+   * @return true if data file, false otherwise
+   */
+  def isFile: Boolean
+
+  /**
+   * Returns the file name.
+   * @return file name
+   */
+  def name: String
+}
+trait Directory extends DosFile {
+  def isDirectory = true
+  def isFile      = false
+  def list: List[DosFile]
+}
+
+/**
+ * A special directory class for the root directory, since it is not
+ * based on a DirectoryEntryBlock.
+ * @constructor creates a new RootDirectory instance
+ * @param rootBlock a RootBlock instance
+ */
+class RootDirectory(rootBlock: RootBlock) extends Directory {
+  def name = rootBlock.name
+  def list: List[DosFile] = {
+    val entries = rootBlock.hashtableEntries
+    entries.map(e => e match {
+      case file:FileHeaderBlock   => new UserFile(file)
+      case dir:UserDirectoryBlock => new UserDirectory(dir)
+      case unknown:Any =>
+        throw new IllegalArgumentException("unknown block type: " + unknown.getClass)
+    })
+  }
+}
+
+/**
+ * Abstract super class for directory entries.
+ * @constructor creates a new AbstractDosFile instance
+ * @param dirEntryBlock a DirectoryEntryBlock
+ */
+abstract class AbstractDosFile(dirEntryBlock: DirectoryEntryBlock) extends DosFile {
+  def name = dirEntryBlock.name
+}
+
+/**
+ * Disk directory representation.
+ */
+class UserDirectory(directoryBlock: UserDirectoryBlock)
+extends AbstractDosFile(directoryBlock) with Directory {
+  def list: List[DosFile] = {
+    throw new UnsupportedOperationException("TODO")
+  }
+}
+
+class UserFile(fileHeaderBlock: FileHeaderBlock)
+extends AbstractDosFile(fileHeaderBlock) {
+  def isDirectory = false
+  def isFile      = true
+}
+
+/**
  * Application view to an Amiga file system.
  *
  * @constructor creates a UserVolume from a [[org.dmpp.adf.logical.LogicalVolume]]
@@ -75,4 +147,22 @@ class UserVolume(logicalVolume: LogicalVolume) {
    * @return this volume's name
    */
   def name = logicalVolume.rootBlock.name
+
+  /**
+   * Returns the root directory.
+   * @return the root directory.
+   */
+  def rootDirectory: Directory = {
+    new RootDirectory(logicalVolume.rootBlock)
+  }
+
+  /**
+   * Given a path expression, select a list of [[org.dmpp.adf.app.DosFile]]
+   * instances.
+   * @param path a path string
+   * @return a list of DosFile instances matching the path expression
+   */
+  def select(path: String): List[DosFile] = {
+    throw new UnsupportedOperationException("TODO")
+  }
 }
