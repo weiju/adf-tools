@@ -42,8 +42,12 @@ object UserVolumeSpecRunner extends ConsoleRunner(UserVolumeSpec)
 object UserVolumeSpec extends Specification {
   "UserVolumeFactory" should {
     "create an empty volume" in {
-      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk
+      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
       empty.name must_== "Empty"
+    }
+    "create an empty volume with a name" in {
+      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk("MyDisk")
+      empty.name must_== "MyDisk"
     }
     "read a workbench" in {
       val workbenchFile = new File(getClass.getResource("/wbench1.3.adf").getFile)
@@ -57,7 +61,7 @@ object UserVolumeSpec extends Specification {
     var workbenchDisk: UserVolume = null
     doBefore {
       workbenchDisk = UserVolumeFactory.readFromFile(workbenchFile)
-      emptyDisk = UserVolumeFactory.createEmptyDoubleDensityDisk
+      emptyDisk = UserVolumeFactory.createEmptyDoubleDensityDisk()
     }
     "read workbench directory" in {
       workbenchDisk.name must_== "Workbench1.3"

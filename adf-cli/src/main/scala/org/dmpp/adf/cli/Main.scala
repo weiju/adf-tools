@@ -31,9 +31,9 @@ import java.io._
 import org.dmpp.adf.logical._
 
 object Main {
-  def makeDisk(filename: String) {
+  def makeDisk(filename: String, name: String = "Empty") {
     printf("making empty disk with file name '%s'...", filename)
-    val volume = LogicalVolumeFactory.createEmptyDoubleDensityDisk
+    val volume = LogicalVolumeFactory.createEmptyDoubleDensityDisk(name)
     val file = new File(filename)
     val out = new FileOutputStream(file)
     volume.writeToOutputStream(out)

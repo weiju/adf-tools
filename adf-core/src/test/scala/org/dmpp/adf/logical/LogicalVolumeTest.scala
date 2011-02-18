@@ -49,10 +49,11 @@ object LogicalVolumeSpec extends Specification {
   "LogicalVolumeFactory" should {
 
     "create an empty volume" in {
-      val volume = LogicalVolumeFactory.createEmptyDoubleDensityDisk
+      val volume = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
       checkForValidBootBlock(volume)      
       checkForValidRootBlock(volume)
       volume.usedBlockNumbers must_== List(880, 881)
+      volume.name must_== "Empty"
     }
 
     def checkForValidBootBlock(volume: LogicalVolume) {

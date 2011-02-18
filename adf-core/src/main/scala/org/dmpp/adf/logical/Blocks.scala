@@ -267,3 +267,145 @@ with BitHelper {
     result
   }
 }
+
+/**
+ * Symbolic constants for boot blocks.
+ */
+object BootBlock {
+  val FlagFFS              = 1
+  val FlagIntlOnly         = 2
+  val FlagDirCacheAndIntl  = 4
+}
+
+/**
+ * This class represents the boot block on an Amiga volume.
+ * @constructor creates a boot block for the given physical volume
+ * @param physicalVolume a [[org.dmpp.adf.physical.PhysicalVolume]] instance.
+ */
+class BootBlock(physicalVolume: PhysicalVolume) extends HasChecksum with BitHelper {
+  import BootBlock._
+
+  /**
+   * Initializes an empty boot block.
+   */
+  def initialize {
+    physicalVolume(0) = 'D'
+    physicalVolume(1) = 'O'
+    physicalVolume(2) = 'S'
+  }
+
+  def filesystemType  = if (flagClear(flags, FlagFFS)) "OFS" else "FFS"
+  def isInternational = flagSet(flags, FlagIntlOnly) ||
+  flagSet(flags, FlagDirCacheAndIntl)
+  def useDirCache     = flagSet(flags, FlagDirCacheAndIntl)
+  private def flags = physicalVolume(3) & 0x07
+  
+  def rootBlockNumber = physicalVolume.int32At(8)
+  def storedChecksum  = physicalVolume.int32At(4)
+  def recomputeChecksum = physicalVolume.setInt32At(4, computedChecksum)
+  
+  def computedChecksum: Int = {
+    import UnsignedInt32Conversions._
+
+    var sum: UnsignedInt32 = 0
+    for (i <- 0 until 1024 by 4) {
+      if (i != 4) {
+        sum += (physicalVolume.int32At(i) & 0xffffffffl)
+        if (sum.overflowOccurred) sum += 1
+      }
+    }
+    ~sum.intValue
+  }
+}
+
+/**
+ * Symbolic constants for root blocks.
+ */
+object RootBlock {
+  val MaxBitmapBlocks = 25
+}
+
+/**
+ * This class represents an Amiga volume's root block.
+ * @constructor creates a root block instance for the specified sector
+ * @param physicalVolume the physical volumex
+ * @param sectorNumber the sector number
+ */
+class RootBlock(physicalVolume: PhysicalVolume, sectorNumber: Int)
+extends HeaderBlock(physicalVolume, sectorNumber)
+with DirectoryLike {
+
+  import RootBlock._
+  
+  /**
+   * Initializes an empty root block.
+   * @param aName the volume's name
+   */
+  def initialize(aName: String) {
+    primaryType = BlockType.PtShort
+    secondaryType = BlockType.StRoot
+    setBitmapIsValid
+    name = aName
+    hashtableSize = 0x48
+    setBitmapBlockIdAt(0, 881)
+    recomputeChecksum
+  }
+
+  def highSeq         = sector.int32At(8)
+  def firstData       = sector.int32At(16)
+
+  def bitmapIsValid: Boolean = {
+    (sector.int32At(sector.sizeInBytes - 200) == 0xffffffff)
+  }
+  def setBitmapIsValid {
+    sector.setInt32At(sector.sizeInBytes - 200, 0xffffffff)
+  }
+  def bitmapBlockIdAt(index: Int) = {
+    sector.int32At(bitmapBlockBaseOffset + index * 4)
+  }
+  def setBitmapBlockIdAt(index: Int, bitmapBlockId: Int) = {
+    sector.setInt32At(bitmapBlockBaseOffset + index * 4, bitmapBlockId)
+  }
+  private def bitmapBlockBaseOffset = sector.sizeInBytes - 196
+
+  /**
+   * Returns the bitmap block at the specified index.
+   * @param index bitmap block index
+   * @return Some(BitmapBlock) if successful, None, otherwise
+   */
+  def bitmapBlockAt(index: Int): Option[BitmapBlock] = {
+    val bitmapBlockId = bitmapBlockIdAt(index)
+    if (bitmapBlockId <= 0) None
+    else Some(new BitmapBlock(physicalVolume, bitmapBlockId))
+  }
+  /**
+   * Returns all the bitmap block of this file system.
+   * @return this filesystem's bitmap blocks
+   */
+  def bitmapBlocks: List[BitmapBlock] = {
+    var result: List[BitmapBlock] = Nil
+    for (i <- 0 until MaxBitmapBlocks) {
+      val bitmapBlockId = bitmapBlockIdAt(i)
+      if (bitmapBlockId > 0) result ::= new BitmapBlock(physicalVolume, bitmapBlockId)
+    }
+    result.reverse
+  }
+  /**
+   * Returns the last modification time of the disk.
+   * @return last modification time
+   */
+  def lastModifiedDisk: Date = {
+    AmigaDosDate(sector.int32At(sector.sizeInBytes - 40),
+                 sector.int32At(sector.sizeInBytes - 36),
+                 sector.int32At(sector.sizeInBytes - 32)).toDate
+  }
+  /**
+   * Returns the creation time of the file system.
+   * @return file system creation time
+   */
+  def fsCreationTime: Date = {
+    AmigaDosDate(sector.int32At(sector.sizeInBytes - 28),
+                 sector.int32At(sector.sizeInBytes - 24),
+                 sector.int32At(sector.sizeInBytes - 20)).toDate
+  }
+}

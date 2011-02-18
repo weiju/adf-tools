@@ -38,25 +38,13 @@ import java.io._
 object LogicalVolumeFactory {
   /**
    * Creates an empty, non-bootable DD "formatted" disk.
+   * @param volume name (optional)
+   * @return initialized [[org.dmpp.adf.logical.LogicalVolume]] instance
    */
-  def createEmptyDoubleDensityDisk = {
-    val physicalVolume = PhysicalVolumeFactory.createEmptyDoubleDensityDisk
-    val logicalVolume = new LogicalVolume(physicalVolume)
-    logicalVolume.sector(0)(0) = 'D'
-    logicalVolume.sector(0)(1) = 'O'
-    logicalVolume.sector(0)(2) = 'S'
-    logicalVolume.rootBlock.primaryType = BlockType.PtShort
-    logicalVolume.rootBlock.secondaryType = BlockType.StRoot
-    logicalVolume.rootBlock.setBitmapIsValid
-    logicalVolume.rootBlock.name = "Empty"
-    logicalVolume.rootBlock.hashtableSize = 0x48
-    logicalVolume.rootBlock.setBitmapBlockIdAt(0, 881)
-    logicalVolume.rootBlock.recomputeChecksum
-
-    val bitmapBlock = new BitmapBlock(physicalVolume, 881)
-    bitmapBlock.initialize
-    logicalVolume.allocate(880) // root block
-    logicalVolume.allocate(881) // bitmap block
+  def createEmptyDoubleDensityDisk(name: String = "Empty") = {
+    val logicalVolume =
+      new LogicalVolume(PhysicalVolumeFactory.createEmptyDoubleDensityDisk)
+    logicalVolume.initialize(name)
     logicalVolume
   }
 }
@@ -78,127 +66,34 @@ object LogicalVolume {
 class LogicalVolume(physicalVolume: PhysicalVolume) {
   import LogicalVolume._
 
+  /**
+   * Initializes this volume as an empty volume.
+   */
+  def initialize(name: String) {
+    bootBlock.initialize
+    rootBlock.initialize(name)
+    new BitmapBlock(physicalVolume, 881).initialize
+    allocate(880) // root block
+    allocate(881) // bitmap block
+  }
+
   def writeToOutputStream(out: OutputStream) = physicalVolume.writeToOutputStream(out)
   def sizeInBytes = physicalVolume.sizeInBytes
   def apply(byteNum: Int) = physicalVolume(byteNum)
-  def sector(sectorNum: Int) = physicalVolume.sector(sectorNum)
+  //def sector(sectorNum: Int) = physicalVolume.sector(sectorNum)
 
-  /**
-   * Symbolic constants for boot blocks.
-   */
-  object BootBlock {
-    val FlagFFS              = 1
-    val FlagIntlOnly         = 2
-    val FlagDirCacheAndIntl  = 4
-  }
-
-  /**
-   * This class represents the boot block on an Amiga volume.
-   */
-  protected class BootBlock extends HasChecksum with BitHelper {
-    import BootBlock._
-
-    private def flags = physicalVolume(3) & 0x07
-    def filesystemType  = if (flagClear(flags, FlagFFS)) "OFS" else "FFS"
-    def isInternational = flagSet(flags, FlagIntlOnly) ||
-                          flagSet(flags, FlagDirCacheAndIntl)
-    def useDirCache     = flagSet(flags, FlagDirCacheAndIntl)
-
-    def rootBlockNumber = physicalVolume.int32At(8)
-    def storedChecksum  = physicalVolume.int32At(4)
-    def recomputeChecksum = physicalVolume.setInt32At(4, computedChecksum)
-
-    def computedChecksum: Int = {
-      import UnsignedInt32Conversions._
-
-      var sum: UnsignedInt32 = 0
-      for (i <- 0 until 1024 by 4) {
-        if (i != 4) {
-          sum += (physicalVolume.int32At(i) & 0xffffffffl)
-          if (sum.overflowOccurred) sum += 1
-        }
-      }
-      ~sum.intValue
-    }
-  }
-
-  object RootBlock {
-    val MaxBitmapBlocks = 25
-  }
-  /**
-   * This class represents an Amiga volume's root block.
-   * @constructor creates a root block instance for the specified sector
-   * @param sectorNumber the sector number
-   */
-  protected class RootBlock(sectorNumber: Int)
-  extends HeaderBlock(physicalVolume, sectorNumber)
-  with DirectoryLike {
-    import RootBlock._
-
-    def highSeq         = sector.int32At(8)
-    def firstData       = sector.int32At(16)
-
-    def bitmapIsValid: Boolean = {
-      (sector.int32At(sector.sizeInBytes - 200) == 0xffffffff)
-    }
-    def setBitmapIsValid {
-      sector.setInt32At(sector.sizeInBytes - 200, 0xffffffff)
-    }
-    def bitmapBlockIdAt(index: Int) = {
-      sector.int32At(bitmapBlockBaseOffset + index * 4)
-    }
-    def setBitmapBlockIdAt(index: Int, bitmapBlockId: Int) = {
-      sector.setInt32At(bitmapBlockBaseOffset + index * 4, bitmapBlockId)
-    }
-    private def bitmapBlockBaseOffset = sector.sizeInBytes - 196
-
-    /**
-     * Returns the bitmap block at the specified index.
-     * @param index bitmap block index
-     * @return Some(BitmapBlock) if successful, None, otherwise
-     */
-    def bitmapBlockAt(index: Int): Option[BitmapBlock] = {
-      val bitmapBlockId = bitmapBlockIdAt(index)
-      if (bitmapBlockId <= 0) None
-      else Some(new BitmapBlock(physicalVolume, bitmapBlockId))
-    }
-    /**
-     * Returns all the bitmap block of this file system.
-     * @return this filesystem's bitmap blocks
-     */
-    def bitmapBlocks: List[BitmapBlock] = {
-      var result: List[BitmapBlock] = Nil
-      for (i <- 0 until MaxBitmapBlocks) {
-        val bitmapBlockId = bitmapBlockIdAt(i)
-        if (bitmapBlockId > 0) result ::= new BitmapBlock(physicalVolume, bitmapBlockId)
-      }
-      result.reverse
-    }
-    /**
-     * Returns the last modification time of the disk.
-     * @return last modification time
-     */
-    def lastModifiedDisk: Date = {
-      AmigaDosDate(sector.int32At(sector.sizeInBytes - 40),
-                   sector.int32At(sector.sizeInBytes - 36),
-                   sector.int32At(sector.sizeInBytes - 32)).toDate
-    }
-    /**
-     * Returns the creation time of the file system.
-     * @return file system creation time
-     */
-    def fsCreationTime: Date = {
-      AmigaDosDate(sector.int32At(sector.sizeInBytes - 28),
-                   sector.int32At(sector.sizeInBytes - 24),
-                   sector.int32At(sector.sizeInBytes - 20)).toDate
-    }
-  }
 
   /** This volume's boot block. */
-  val bootBlock = new BootBlock
+  val bootBlock = new BootBlock(physicalVolume)
 
   /** This volumes's root block. */
-  val rootBlock = new RootBlock(RootSectorNumber)
+  val rootBlock = new RootBlock(physicalVolume, RootSectorNumber)
+
+  /**
+   * Returns this volume's name.
+   * @return the volume's name
+   */
+  def name = rootBlock.name
 
   /**
    * Marks the specified block as used.

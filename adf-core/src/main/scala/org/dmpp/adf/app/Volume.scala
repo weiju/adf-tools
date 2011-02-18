@@ -41,8 +41,8 @@ object UserVolumeFactory {
    * Create an empty, initialized DD disk.
    * @return empty user volume of DD size
    */
-  def createEmptyDoubleDensityDisk = {
-    new UserVolume(LogicalVolumeFactory.createEmptyDoubleDensityDisk)
+  def createEmptyDoubleDensityDisk(name: String = "Empty") = {
+    new UserVolume(LogicalVolumeFactory.createEmptyDoubleDensityDisk(name))
   }
 
   /**
