@@ -46,12 +46,13 @@ import org.dmpp.adf.util._
 class Sector(data: Array[Byte], offset: Int, val sizeInBytes: Int) extends BitHelper {
 
   /**
-   * Retrieves the data byte at position byteNum.
+   * Retrieves the data byte at position byteNum. Int is returned to receive an
+   * unsigned value.
    *
    * @param byteNum the position to retrieve
    * @return data byte at the specified position
    */
-  def apply(byteNum: Int) = {
+  def apply(byteNum: Int): Int = {
     if (byteNum >= sizeInBytes) throw new IndexOutOfBoundsException("invalid byte num")
     data(offset + byteNum) & 0xff
   }

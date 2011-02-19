@@ -87,3 +87,47 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
     throw new UnsupportedOperationException("lastAccessTime not available in root block")
   }
 }
+
+/**
+ * General interface for a data block.
+ */
+trait DataBlock {
+  def dataBytes: Array[Byte]
+}
+
+/**
+ * OFS data blocks contain more information than just data.
+ * Currently, that information is ignored and an OFS data block
+ * only provides access to data bytes.
+ * @constructor create an OfsDataBlock
+ * @param physicalVolume a PhysicalVolume
+ * @param blockNumber the block number of this block
+ */
+class OfsDataBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
+extends DataBlock {
+  val sector = physicalVolume.sector(blockNumber)
+
+  def dataBytes = {
+    val result = new Array[Byte](sector.sizeInBytes - 24)
+    for (i <- 0 until result.length) {
+        result(i) = sector(i + 24).asInstanceOf[Byte]
+    }
+    result
+  }
+}
+
+/**
+ * FFS data blocks are plain arrays of byte values.
+ * @constructor creates an FFS data block
+ * @param physicalVolume a PhysicalVolume
+ * @param blockNumber this block's block number
+ */
+class FfsDataBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
+extends DataBlock {
+  def dataBytes = {
+    val sector = physicalVolume.sector(blockNumber)
+    val result = new Array[Byte](sector.sizeInBytes)
+    for (i <- 0 until sector.sizeInBytes) result(i) = sector(i).asInstanceOf[Byte]
+    result
+  }
+}

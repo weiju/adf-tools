@@ -110,11 +110,12 @@ trait Directory extends DosFile {
 
 trait ContainsHashtableBlock {
   def hashtableEntries: List[DirectoryEntryBlock]
+  def logicalVolume: LogicalVolume
 
   def list: List[DosFile] = {
     hashtableEntries.map(e => e match {
-      case file:FileHeaderBlock   => new UserFile(file)
-      case dir:UserDirectoryBlock => new UserDirectory(dir)
+      case file:FileHeaderBlock   => new UserFile(logicalVolume, file)
+      case dir:UserDirectoryBlock => new UserDirectory(logicalVolume, dir)
       case unknown:Any =>
         throw new IllegalArgumentException("unknown block type: " + unknown.getClass)
     })
@@ -128,8 +129,8 @@ trait ContainsHashtableBlock {
 
   private def createFileOrDirectory(directoryEntryBlock: DirectoryEntryBlock) = {
     directoryEntryBlock match {
-      case dir:UserDirectoryBlock => new UserDirectory(dir)
-      case file:FileHeaderBlock => new UserFile(file)
+      case dir:UserDirectoryBlock => new UserDirectory(logicalVolume, dir)
+      case file:FileHeaderBlock => new UserFile(logicalVolume, file)
       case _ => throw new IllegalArgumentException("unknowk block type")
     }
   }
@@ -139,10 +140,11 @@ trait ContainsHashtableBlock {
  * A special directory class for the root directory, since it is not
  * based on a DirectoryEntryBlock.
  * @constructor creates a new RootDirectory instance
- * @param rootBlock a RootBlock instance
+ * @param logicanVolume a LogicalVolume instance
  */
-class RootDirectory(rootBlock: RootBlock)
+class RootDirectory(val logicalVolume: LogicalVolume)
 extends Directory with ContainsHashtableBlock {
+  private def rootBlock    = logicalVolume.rootBlock 
   def name                 = rootBlock.name
   def hashtableEntries     = rootBlock.hashtableEntries
   def lastModificationTime = rootBlock.lastModificationTime
@@ -164,19 +166,57 @@ abstract class AbstractDosFile(dirEntryBlock: DirectoryEntryBlock) extends DosFi
 
 /**
  * Disk directory representation.
+ * @constructor creates a UserDirectory instance
+ * @param logicalVolume a LogicalVolume
+ * @param directoryBlock the underlying directory block
  */
-class UserDirectory(directoryBlock: UserDirectoryBlock)
+class UserDirectory(val logicalVolume: LogicalVolume,
+                    directoryBlock: UserDirectoryBlock)
 extends AbstractDosFile(directoryBlock)
 with Directory with ContainsHashtableBlock {
   def hashtableEntries = directoryBlock.hashtableEntries
 }
 
-class UserFile(fileHeaderBlock: FileHeaderBlock)
+/**
+ * File representation.
+ * @constructor creates a UserFile instance
+ * @param logicalVolume a LogicalVolume
+ * @param fileHeaderBlock the file header block
+ */
+class UserFile(logicalVolume: LogicalVolume,
+               fileHeaderBlock: FileHeaderBlock)
 extends AbstractDosFile(fileHeaderBlock) {
   def isDirectory = false
   def isFile      = true
+  def size        = fileHeaderBlock.fileSize
   override def lastModificationTime: Date = {
     fileHeaderBlock.lastModificationTime
+  }
+  private def copyDataBlock(blockNum: Int, result: Array[Byte],
+                            currentBytesCopied: Int) = {
+    currentBytesCopied
+  }
+  def dataBytes: Array[Byte] = {
+    val dataBlockNums = fileHeaderBlock.dataBlocks
+    val result = new Array[Byte](size)
+    var currentBytesCopied = 0
+    for (blockNum <- 0 until dataBlockNums.length) {
+      val blockdata = logicalVolume.dataBlock(dataBlockNums(blockNum)).dataBytes
+      for (i <- 0 until blockdata.length) {
+        result(currentBytesCopied) = blockdata(i)
+        currentBytesCopied += 1
+        if (currentBytesCopied == size) {
+          if (blockNum < (dataBlockNums.length - 1)) {
+            throw new IllegalStateException("not all blocks were copied")
+          }
+          return result
+        }
+      }
+    }
+    if (currentBytesCopied < size) {
+      throw new IllegalStateException("retrieved less bytes than specified !!")
+    }
+    result
   }
 }
 
@@ -198,7 +238,7 @@ class UserVolume(logicalVolume: LogicalVolume) {
    * @return the root directory.
    */
   def rootDirectory: Directory = {
-    new RootDirectory(logicalVolume.rootBlock)
+    new RootDirectory(logicalVolume)
   }
 
   /**

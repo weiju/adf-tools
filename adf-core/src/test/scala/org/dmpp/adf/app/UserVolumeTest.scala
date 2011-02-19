@@ -56,14 +56,18 @@ object UserVolumeSpec extends Specification {
       rootdir.isDirectory must beTrue
       rootdir.name must_== "Workbench1.3"
       rootdir.list.length must_== 24
-
-      for (direntry <- rootdir.list) {
-        printf("File: %s dir: %b file: %b\n",
-               direntry.name, direntry.isDirectory, direntry.isFile)
-      }
     }
     "find Disk.info in root directory" in {
       workbenchDisk.rootDirectory.find("Disk.info").get.isFile must beTrue
+    }
+    "Disk.info should have file size" in {
+      val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get
+      diskInfo.asInstanceOf[UserFile].size must_== 370
+    }
+    "Disk.info should get data bytes" in {
+      val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get
+      val dataBytes = diskInfo.asInstanceOf[UserFile].dataBytes
+      dataBytes.length must_== 370
     }
     "not find a file in root directory" in {
       workbenchDisk.rootDirectory.find("notfound") must_== None
@@ -71,11 +75,6 @@ object UserVolumeSpec extends Specification {
     "find a directory root directory" in {
       val utilDir = workbenchDisk.rootDirectory.find("Utilities").get
       utilDir.isDirectory must beTrue
-      println("CONTENTS OF util")
-      for (direntry <- utilDir.asInstanceOf[Directory].list) {
-        printf("File: %s dir: %b file: %b\n",
-               direntry.name, direntry.isDirectory, direntry.isFile)
-      }
     }
   }
   def formatted(date: Date) = {

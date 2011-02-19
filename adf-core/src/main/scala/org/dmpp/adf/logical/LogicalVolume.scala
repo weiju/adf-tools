@@ -80,6 +80,7 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     allocate(881) // bitmap block
   }
 
+  def filesystemType = bootBlock.filesystemType
   def writeToOutputStream(out: OutputStream) = physicalVolume.writeToOutputStream(out)
   def sizeInBytes = physicalVolume.sizeInBytes
   def apply(byteNum: Int) = physicalVolume(byteNum)
@@ -123,5 +124,16 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
     bitmapBlock0.usedBlockIndexes.filter(index =>
       index < physicalVolume.numSectorsTotal - 2).map(index => index + 2)
+  }
+
+  /**
+   * Returns the data block with the specified block number.
+   * @param dataBlockNumber the data block number
+   * @return the data block
+   */
+  def dataBlock(dataBlockNumber: Int) = {
+    if (filesystemType == "OFS") new OfsDataBlock(physicalVolume, dataBlockNumber)
+    else if (filesystemType == "FFS") new FfsDataBlock(physicalVolume, dataBlockNumber)
+    else throw new UnsupportedOperationException("unknown file system type")
   }
 }

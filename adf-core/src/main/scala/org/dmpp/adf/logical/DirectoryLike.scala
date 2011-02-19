@@ -57,7 +57,6 @@ trait UsesHashtable { self : HeaderBlock =>
    * @return all header blocks in the directory
    */
   def hashtableEntries: List[DirectoryEntryBlock] = {
-    println("hashtableEntries(), hashtableSize = " + hashtableSize)
     var result : List[DirectoryEntryBlock] = Nil
     val byteSize = hashtableSize * 4
     for (i <- 0 until byteSize by 4) {
