@@ -112,8 +112,48 @@ object UtilSpec extends Specification {
     }
   }
 
+  "AmigaDosDateConversions" should {
+    "convert the zero date" in {
+      val date = dateFromString("1978-01-01 00:00:00.000")
+      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+      amigaDate.daysSinceJan_1_78 must_== 0
+      amigaDate.minutesPastMidnight must_== 0
+      amigaDate.ticksPastLastMinute must_== 0
+    }
+    "convert some milliseconds to ticks" in {
+      val date = dateFromString("1978-01-01 00:00:00.100")
+      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+      amigaDate.daysSinceJan_1_78 must_== 0
+      amigaDate.minutesPastMidnight must_== 0
+      amigaDate.ticksPastLastMinute must_== 5
+    }
+    "convert some seconds" in {
+      val date = dateFromString("1978-01-01 00:00:42.100")
+      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+      amigaDate.daysSinceJan_1_78 must_== 0
+      amigaDate.minutesPastMidnight must_== 0
+      amigaDate.ticksPastLastMinute must_== 2105
+    }
+    "convert some minutes" in {
+      val date = dateFromString("1978-01-01 00:13:00.100")
+      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+      amigaDate.daysSinceJan_1_78 must_== 0
+      amigaDate.minutesPastMidnight must_== 13
+      amigaDate.ticksPastLastMinute must_== 5
+    }
+    "convert some days" in {
+      val date = dateFromString("1978-01-06 00:13:00.100")
+      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+      amigaDate.daysSinceJan_1_78 must_== 5
+      amigaDate.minutesPastMidnight must_== 13
+      amigaDate.ticksPastLastMinute must_== 5
+    }
+  }
+
+  def dateFromString(dateString: String) = {
+    new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").parse(dateString)
+  }
   def formatted(date: Date) = {
-    val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-    dateFormat.format(date)
+    new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(date)
   }
 }

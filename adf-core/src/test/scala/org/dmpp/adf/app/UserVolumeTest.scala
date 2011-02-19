@@ -76,6 +76,12 @@ object UserVolumeSpec extends Specification {
       val utilDir = workbenchDisk.rootDirectory.find("Utilities").get
       utilDir.isDirectory must beTrue
     }
+    "select with '' should list root" in {
+      workbenchDisk.select("").length must_== 24
+    }
+    "select with 'c' should list c directory" in {
+      workbenchDisk.select("c").length must_== 63
+    }
   }
   def formatted(date: Date) = {
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")

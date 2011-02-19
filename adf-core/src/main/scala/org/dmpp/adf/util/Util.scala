@@ -166,6 +166,31 @@ case class UnsignedInt32(value: Long, overflowOccurred: Boolean = false) {
 }
 
 /**
+ * AmigaDOS date conversions.
+ */
+object AmigaDosDateConversions {
+  import AmigaDosDate._
+
+  /**
+   * Convert a [[java.util.Date]] into an [[org.dmpp.adf.util.AmigaDosDate]].
+   * @param date a Java date
+   * @return an AmigaDosDate
+   */
+  implicit def date2AmigaDosDate(date: Date): AmigaDosDate = {
+    val millisSinceBaseTime = date.getTime - BaseMillis
+    val daysSinceBaseTime =
+      (millisSinceBaseTime / MillisecondsPerDay).asInstanceOf[Int]
+    var remainMillis = millisSinceBaseTime - (daysSinceBaseTime * MillisecondsPerDay)
+    val minutesPastMidnight =
+      (remainMillis / MillisecondsPerMinute).asInstanceOf[Int]
+    remainMillis -= (minutesPastMidnight * MillisecondsPerMinute)
+    val ticksPastLastMinute =
+      (remainMillis / MillisecondsPerTick).asInstanceOf[Int]
+    AmigaDosDate(daysSinceBaseTime, minutesPastMidnight, ticksPastLastMinute)
+  }
+}
+
+/**
  * Constant definitions for Amiga DOS dates.
  */
 object AmigaDosDate {
@@ -173,6 +198,7 @@ object AmigaDosDate {
   val MillisecondsPerTick      = 20
   val MillisecondsPerMinute    = 1000 * 60
   val MillisecondsPerDay: Long = 1000 * 60 * 60 * 24
+  val BaseMillis = DateFormat.parse("1978-01-01 00:00:00.000").getTime
 }
 
 /**
@@ -194,8 +220,7 @@ case class AmigaDosDate(daysSinceJan_1_78: Int, minutesPastMidnight: Int,
    * @return a java.util.Date representing this AmigaDOS date
    */
   def toDate: Date = {
-    val baseMillis = DateFormat.parse("1978-01-01 00:00:00.000").getTime
-    new Date(baseMillis +
+    new Date(BaseMillis +
              daysToMillis(daysSinceJan_1_78) +
              minutesToMillis(minutesPastMidnight) +
              ticksToMillis(ticksPastLastMinute))

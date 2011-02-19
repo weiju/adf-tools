@@ -248,7 +248,16 @@ class UserVolume(logicalVolume: LogicalVolume) {
    * @return a list of DosFile instances matching the path expression
    */
   def select(path: String): List[DosFile] = {
-    throw new UnsupportedOperationException("TODO")
+    if (path == "") rootDirectory.list
+    else {
+      val comps = path.split("/").toList
+      val matchFiles = rootDirectory.list.filter(entry => entry.name == comps(0))
+      if (matchFiles == 0) Nil
+      else {
+        val dir = matchFiles(0).asInstanceOf[Directory]
+        dir.list
+      }
+    }
   }
 
   /**
