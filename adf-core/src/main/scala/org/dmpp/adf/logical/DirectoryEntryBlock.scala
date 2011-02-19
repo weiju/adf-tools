@@ -27,6 +27,7 @@
  */
 package org.dmpp.adf.logical
 
+import java.util.Date
 import org.dmpp.adf.physical._
 
 /**
@@ -46,7 +47,7 @@ with HasAccessRights {
  */
 class UserDirectoryBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(physicalVolume, blockNumber)
-with DirectoryLike {
+with UsesHashtable {
   def parentBlock = sector.int32At(sector.sizeInBytes - 12)
 }
 
@@ -70,5 +71,19 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
       throw new UnsupportedOperationException("Large files not supported yet")
     }
     result.reverse
+  }
+
+  /**
+   * Last modification time. In a file header block, this replaces lastAccessTime.
+   * @return last modification time
+   */
+  def lastModificationTime: Date = super.lastAccessTime
+
+  /**
+   * Throws an UnsupportedOperationException in a file header block.
+   * @return nothing
+   */
+  override def lastAccessTime: Date = {
+    throw new UnsupportedOperationException("lastAccessTime not available in root block")
   }
 }

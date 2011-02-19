@@ -30,14 +30,14 @@ package org.dmpp.adf.logical
 /**
  * Constants for DirectoryBlock class.
  */
-object DirectoryLike {
+object UsesHashtable {
   val OffsetHashtableSize = 12
   val OffsetHashtable     = 24
 }
 
-trait DirectoryLike { self : HeaderBlock =>
+trait UsesHashtable { self : HeaderBlock =>
 
-  import DirectoryLike._
+  import UsesHashtable._
 
   /**
    * Returns the size of the directory's hash table.

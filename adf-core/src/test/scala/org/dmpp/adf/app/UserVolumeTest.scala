@@ -31,6 +31,7 @@ import org.specs._
 import org.specs.runner.{ConsoleRunner, JUnit4}
 
 import java.io._
+import java.util.Date
 import org.dmpp.adf.app._
 
 /**
@@ -50,6 +51,7 @@ object UserVolumeSpec extends Specification {
     }
     "read workbench root directory" in {
       workbenchDisk.name must_== "Workbench1.3"
+      formatted(workbenchDisk.creationTime) must_== "1989-08-16 13:57:36.100"
       val rootdir = workbenchDisk.rootDirectory
       rootdir.isDirectory must beTrue
       rootdir.name must_== "Workbench1.3"
@@ -60,5 +62,9 @@ object UserVolumeSpec extends Specification {
                direntry.name, direntry.isDirectory, direntry.isFile)
       }*/
     }
+  }
+  def formatted(date: Date) = {
+    val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+    dateFormat.format(date)
   }
 }

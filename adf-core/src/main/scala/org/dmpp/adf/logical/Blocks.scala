@@ -131,10 +131,10 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   def nextInHashBucket = sector.int32At(sector.sizeInBytes - 16)
 
   /**
-   * Returns the last modification date.
-   * @return last modification date
+   * Returns the last access time.
+   * @return last access time
    */
-  def lastModified: Date = {
+  def lastAccessTime: Date = {
     AmigaDosDate(sector.int32At(sector.sizeInBytes - 92),
                  sector.int32At(sector.sizeInBytes - 88),
                  sector.int32At(sector.sizeInBytes - 84)).toDate
@@ -143,4 +143,3 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   def computedChecksum: Int = computeChecksum(20)
   def recomputeChecksum = sector.setInt32At(20, computedChecksum)
 }
-

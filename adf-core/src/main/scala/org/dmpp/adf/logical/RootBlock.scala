@@ -47,7 +47,7 @@ object RootBlock {
  */
 class RootBlock(physicalVolume: PhysicalVolume, sectorNumber: Int)
 extends HeaderBlock(physicalVolume, sectorNumber)
-with DirectoryLike {
+with UsesHashtable {
 
   import RootBlock._
   
@@ -105,21 +105,37 @@ with DirectoryLike {
     result.reverse
   }
   /**
-   * Returns the last modification time of the disk.
+   * Returns the last modification time of the volume. Updated when the
+   * disk contents is changed.
    * @return last modification time
    */
-  def lastModifiedDisk: Date = {
+  def diskLastModificationTime: Date = {
     AmigaDosDate(sector.int32At(sector.sizeInBytes - 40),
                  sector.int32At(sector.sizeInBytes - 36),
                  sector.int32At(sector.sizeInBytes - 32)).toDate
   }
   /**
-   * Returns the creation time of the file system.
+   * Returns the creation time of the file system. This value is only generated
+   * when a volume is initialized.
    * @return file system creation time
    */
-  def fsCreationTime: Date = {
+  def creationTime: Date = {
     AmigaDosDate(sector.int32At(sector.sizeInBytes - 28),
                  sector.int32At(sector.sizeInBytes - 24),
                  sector.int32At(sector.sizeInBytes - 20)).toDate
+  }
+
+  /**
+   * Last modification time. In the root block, this replaces lastAccessTime.
+   * @return last modification time
+   */
+  def lastModificationTime: Date = super.lastAccessTime
+
+  /**
+   * Throws an UnsupportedOperationException in the root block.
+   * @return nothing
+   */
+  override def lastAccessTime: Date = {
+    throw new UnsupportedOperationException("lastAccessTime not available in root block")
   }
 }

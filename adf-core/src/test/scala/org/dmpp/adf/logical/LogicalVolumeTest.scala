@@ -82,10 +82,15 @@ object LogicalVolumeSpec extends Specification {
       logicalVolume.rootBlock.firstData must_== 0
       logicalVolume.rootBlock.storedChecksum must_== 0xf1dd3b47
       logicalVolume.rootBlock.bitmapIsValid must beTrue
-      formatted(logicalVolume.rootBlock.lastModified) must_== "1989-08-17 18:21:31.480"
-      formatted(logicalVolume.rootBlock.lastModifiedDisk) must_== "1996-10-30 21:24:38.340"
-      formatted(logicalVolume.rootBlock.fsCreationTime) must_== "1989-08-16 13:57:36.100"
+      formatted(logicalVolume.rootBlock.lastModificationTime) must_==
+        "1989-08-17 18:21:31.480"
+      formatted(logicalVolume.rootBlock.diskLastModificationTime) must_==
+        "1996-10-30 21:24:38.340"
+      formatted(logicalVolume.rootBlock.creationTime) must_== "1989-08-16 13:57:36.100"
       logicalVolume.rootBlock.secondaryType must_== BlockType.StRoot
+    }
+    "lastAccessTime not supported" in {
+      logicalVolume.rootBlock.lastAccessTime must throwA[UnsupportedOperationException]
     }
     "disk has workbench 1.3 name" in {
       logicalVolume.rootBlock.name must_== "Workbench1.3"
@@ -125,54 +130,6 @@ object LogicalVolumeSpec extends Specification {
     }
     "root block should return none for non-existing file name" in {
       logicalVolume.rootBlock.blockForName("notexisting") must_== None
-    }
-    "System dir is a directory" in {
-      val sysdir = logicalVolume.rootBlock.blockForName("System").get
-      sysdir.isDirectory must beTrue
-      sysdir.isFile must beFalse
-    }
-    "Disk.info should return gid and uid" in {
-      val diskInfo = logicalVolume.rootBlock.blockForName("Disk.info").get
-      diskInfo.isDirectory must beFalse
-      diskInfo.isFile must beTrue
-    }
-
-    // access rights
-    "System dir should return gid and uid" in {
-      val sysdir = logicalVolume.rootBlock.blockForName("System").get
-      sysdir.uid must_== 0
-      sysdir.gid must_== 0
-    }
-    "Disk.info should return gid and uid" in {
-      val diskInfo = logicalVolume.rootBlock.blockForName("Disk.info").get
-      diskInfo.uid must_== 0
-      diskInfo.gid must_== 0
-    }
-    "Disk.info should have protection flags" in {
-      val diskInfo = logicalVolume.rootBlock.blockForName("Disk.info").get
-      diskInfo.flags.canDelete  must beTrue
-      diskInfo.flags.canExecute must beTrue
-      diskInfo.flags.canWrite   must beTrue
-      diskInfo.flags.canRead    must beTrue
-      diskInfo.flags.isArchived must beFalse
-      diskInfo.flags.isPure     must beFalse
-      diskInfo.flags.isScript   must beFalse
-      diskInfo.flags.hold       must beFalse
-    }
-
-    "System dir has root block as parent" in {
-      val sysdir = logicalVolume.rootBlock.blockForName("System").get
-      sysdir.asInstanceOf[UserDirectoryBlock].parentBlock must_== 880
-    }
-
-    // Files
-    "Disk.info has file size" in {
-      val diskInfo = logicalVolume.rootBlock.blockForName("Disk.info").get
-      diskInfo.asInstanceOf[FileHeaderBlock].fileSize must_== 370
-    }
-    "Disk.info has data blocks" in {
-      val diskInfo = logicalVolume.rootBlock.blockForName("Disk.info").get
-      diskInfo.asInstanceOf[FileHeaderBlock].dataBlocks must_== List(1285)
     }
 
     // bitmap blocks

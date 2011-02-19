@@ -28,6 +28,7 @@
 package org.dmpp.adf.app
 
 import java.io._
+import java.util.Date
 
 import org.dmpp.adf.logical._
 import org.dmpp.adf.physical._
@@ -83,6 +84,22 @@ trait DosFile {
    * @return file name
    */
   def name: String
+
+  /**
+   * Last access time. This is a property of non-root directories.
+   * Called on the root directory or a file, this will throw an
+   * UnsupportedOperationException.
+   * @return the last access time
+   */
+  def lastAccessTime: Date
+
+  /**
+   * Last modification time. This is a property of root directories and files.
+   * Called on a non-root directory, this will throw an
+   * UnsupportedOperationException.
+   * @return the last modification time
+   */
+  def lastModificationTime: Date
 }
 trait Directory extends DosFile {
   def isDirectory = true
@@ -90,16 +107,11 @@ trait Directory extends DosFile {
   def list: List[DosFile]
 }
 
-/**
- * A special directory class for the root directory, since it is not
- * based on a DirectoryEntryBlock.
- * @constructor creates a new RootDirectory instance
- * @param rootBlock a RootBlock instance
- */
-class RootDirectory(rootBlock: RootBlock) extends Directory {
-  def name = rootBlock.name
+trait ContainsHashtableBlock {
+  def directoryBlock: UsesHashtable
+
   def list: List[DosFile] = {
-    val entries = rootBlock.hashtableEntries
+    val entries = directoryBlock.hashtableEntries
     entries.map(e => e match {
       case file:FileHeaderBlock   => new UserFile(file)
       case dir:UserDirectoryBlock => new UserDirectory(dir)
@@ -110,33 +122,52 @@ class RootDirectory(rootBlock: RootBlock) extends Directory {
 }
 
 /**
+ * A special directory class for the root directory, since it is not
+ * based on a DirectoryEntryBlock.
+ * @constructor creates a new RootDirectory instance
+ * @param rootBlock a RootBlock instance
+ */
+class RootDirectory(rootBlock: RootBlock)
+extends Directory with ContainsHashtableBlock {
+  def name                 = rootBlock.name
+  def directoryBlock       = rootBlock
+  def lastModificationTime = rootBlock.lastModificationTime
+  def lastAccessTime       = rootBlock.lastAccessTime
+}
+
+/**
  * Abstract super class for directory entries.
  * @constructor creates a new AbstractDosFile instance
  * @param dirEntryBlock a DirectoryEntryBlock
  */
 abstract class AbstractDosFile(dirEntryBlock: DirectoryEntryBlock) extends DosFile {
-  def name = dirEntryBlock.name
+  def name                 = dirEntryBlock.name
+  def lastAccessTime       = dirEntryBlock.lastAccessTime
+  def lastModificationTime: Date = {
+    throw new UnsupportedOperationException("not supported")
+  }
 }
 
 /**
  * Disk directory representation.
  */
 class UserDirectory(directoryBlock: UserDirectoryBlock)
-extends AbstractDosFile(directoryBlock) with Directory {
-  def list: List[DosFile] = {
-    throw new UnsupportedOperationException("TODO")
-  }
+extends AbstractDosFile(directoryBlock)
+with Directory with ContainsHashtableBlock {
+  def directoryBlock = directoryBlock
 }
 
 class UserFile(fileHeaderBlock: FileHeaderBlock)
 extends AbstractDosFile(fileHeaderBlock) {
   def isDirectory = false
   def isFile      = true
+  override def lastModificationTime: Date = {
+    fileHeaderBlock.lastModificationTime
+  }
 }
 
 /**
  * Application view to an Amiga file system.
- *
  * @constructor creates a UserVolume from a [[org.dmpp.adf.logical.LogicalVolume]]
  *   instance.
  * @param logicalVolume a LogicalVolume instance
@@ -165,4 +196,16 @@ class UserVolume(logicalVolume: LogicalVolume) {
   def select(path: String): List[DosFile] = {
     throw new UnsupportedOperationException("TODO")
   }
+
+  /**
+   * Returns the creation time of this file system.
+   * @return creation time
+   */
+  def creationTime: Date = logicalVolume.rootBlock.creationTime
+
+  /**
+   * Returns the last modification time of this file system.
+   * @return last modification time
+   */
+  def lastModificationTime: Date = logicalVolume.rootBlock.diskLastModificationTime
 }
