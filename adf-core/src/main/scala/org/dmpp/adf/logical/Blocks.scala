@@ -117,10 +117,14 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   def name: String = bcplStringAt(sector.sizeInBytes - 80, NameMaxChars)
 
   /**
-   * Sets the name field for this block.
+   * Sets the name field for this block. If the length of newName exceeds
+   * NameMaxChars, an IllegalArgumentException is thrown.
    * @param newName this block's new name
    */
   def name_=(newName: String) {
+    if (newName.length > NameMaxChars) {
+      throw new IllegalArgumentException("max. 30 characters for name")
+    }
     setBcplStringAt(sector.sizeInBytes - 80, NameMaxChars, newName)
   }
 

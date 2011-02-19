@@ -215,7 +215,6 @@ object PhysicalVolumeFactory {
   }
   /**
    * Creates a physical volume from a double density ADF input stream.
-   * 
    * @param input an input stream
    * @return a physical volume containing the data in the input stream
    */

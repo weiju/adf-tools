@@ -103,17 +103,6 @@ object LogicalVolumeSpec extends Specification {
       logicalVolume.rootBlock.hashtableEntries.length must_== 24
       logicalVolume.rootBlock.hashtableEntries.find(e => e.name == "c") must_!= None
       logicalVolume.rootBlock.hashtableEntries.find(e => e.name == "System") must_!= None
-/*
-      // debugging
-      for (block <- logicalVolume.rootBlock.hashtableEntries) {
-        printf("sector: %d, pr. type: %d, sec. type: %d, name: %s, next: %d, comment: '%s'\n",
-               block.sectorNumber,
-               block.primaryType,
-               block.secondaryType,
-               block.name,
-               block.nextInHashBucket,
-               block.comment)
-      }*/
     }
     "root block should return valid block numbers for valid file names" in {
       logicalVolume.rootBlock.blockNumberForName("System") must_== 881
@@ -130,6 +119,13 @@ object LogicalVolumeSpec extends Specification {
     }
     "root block should return none for non-existing file name" in {
       logicalVolume.rootBlock.blockForName("notexisting") must_== None
+    }
+    "root block can be renamed" in {
+      logicalVolume.rootBlock.name = "NewDisk"
+      logicalVolume.rootBlock.name must_== "NewDisk"
+    }
+    "root block renaming with too long name results in error" in {
+      (logicalVolume.rootBlock.name = "this is a ridiculously long disk name with error") must throwA[IllegalArgumentException]
     }
 
     // bitmap blocks

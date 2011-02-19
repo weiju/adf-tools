@@ -31,8 +31,8 @@ package org.dmpp.adf.logical
  * Constants for DirectoryBlock class.
  */
 object UsesHashtable {
-  val OffsetHashtableSize = 12
-  val OffsetHashtable     = 24
+  val OffsetHashtableSize  = 12
+  val OffsetHashtable      = 24
 }
 
 trait UsesHashtable { self : HeaderBlock =>
@@ -43,7 +43,7 @@ trait UsesHashtable { self : HeaderBlock =>
    * Returns the size of the directory's hash table.
    * @return hash table size
    */
-  def hashtableSize   = sector.int32At(OffsetHashtableSize)
+  def hashtableSize   = (sector.sizeInBytes / 4) - 56
 
   /**
    * Sets the hash table size.
@@ -57,6 +57,7 @@ trait UsesHashtable { self : HeaderBlock =>
    * @return all header blocks in the directory
    */
   def hashtableEntries: List[DirectoryEntryBlock] = {
+    println("hashtableEntries(), hashtableSize = " + hashtableSize)
     var result : List[DirectoryEntryBlock] = Nil
     val byteSize = hashtableSize * 4
     for (i <- 0 until byteSize by 4) {

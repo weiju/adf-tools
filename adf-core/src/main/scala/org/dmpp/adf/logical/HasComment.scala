@@ -40,5 +40,16 @@ trait HasComment extends ReadsBcplStrings { self : HeaderBlock =>
    * @return this block's comment
    */
   def comment: String = bcplStringAt(sector.sizeInBytes - 184, CommentMaxChars)
-}
 
+  /**
+   * Sets the comment field for this block. If the length of newComment exceeds
+   * CommentMaxChars, an IllegalArgumentException is thrown.
+   * @param newComment the new comment
+   */
+  def comment_=(newComment: String) {
+    if (newComment.length > CommentMaxChars) {
+      throw new IllegalArgumentException("max. 79 characters for comment")
+    }
+    setBcplStringAt(sector.sizeInBytes - 184, CommentMaxChars, newComment)
+  }
+}

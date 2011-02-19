@@ -105,19 +105,33 @@ trait Directory extends DosFile {
   def isDirectory = true
   def isFile      = false
   def list: List[DosFile]
+  def find(filename: String): Option[DosFile]
 }
 
 trait ContainsHashtableBlock {
-  def directoryBlock: UsesHashtable
+  def hashtableEntries: List[DirectoryEntryBlock]
 
   def list: List[DosFile] = {
-    val entries = directoryBlock.hashtableEntries
-    entries.map(e => e match {
+    hashtableEntries.map(e => e match {
       case file:FileHeaderBlock   => new UserFile(file)
       case dir:UserDirectoryBlock => new UserDirectory(dir)
       case unknown:Any =>
         throw new IllegalArgumentException("unknown block type: " + unknown.getClass)
     })
+  }
+  def find(filename: String): Option[DosFile] = {
+    val matchEntries = hashtableEntries.filter(e => e.name == filename)
+    if (matchEntries.length > 0)
+      Some(createFileOrDirectory(matchEntries(0))) 
+    else None
+  }
+
+  private def createFileOrDirectory(directoryEntryBlock: DirectoryEntryBlock) = {
+    directoryEntryBlock match {
+      case dir:UserDirectoryBlock => new UserDirectory(dir)
+      case file:FileHeaderBlock => new UserFile(file)
+      case _ => throw new IllegalArgumentException("unknowk block type")
+    }
   }
 }
 
@@ -130,7 +144,7 @@ trait ContainsHashtableBlock {
 class RootDirectory(rootBlock: RootBlock)
 extends Directory with ContainsHashtableBlock {
   def name                 = rootBlock.name
-  def directoryBlock       = rootBlock
+  def hashtableEntries     = rootBlock.hashtableEntries
   def lastModificationTime = rootBlock.lastModificationTime
   def lastAccessTime       = rootBlock.lastAccessTime
 }
@@ -154,7 +168,7 @@ abstract class AbstractDosFile(dirEntryBlock: DirectoryEntryBlock) extends DosFi
 class UserDirectory(directoryBlock: UserDirectoryBlock)
 extends AbstractDosFile(directoryBlock)
 with Directory with ContainsHashtableBlock {
-  def directoryBlock = directoryBlock
+  def hashtableEntries = directoryBlock.hashtableEntries
 }
 
 class UserFile(fileHeaderBlock: FileHeaderBlock)

@@ -113,14 +113,35 @@ object DirectoryEntrySpec extends Specification {
       diskInfo.asInstanceOf[FileHeaderBlock].dataBlocks must_== List(1285)
     }
     "File lastModificationTime is supported" in {
-      val sysdir = logicalVolume.rootBlock.blockForName("Disk.info").get
-      formatted(sysdir.asInstanceOf[FileHeaderBlock].lastModificationTime) must_==
+      val file = logicalVolume.rootBlock.blockForName("Disk.info").get
+      formatted(file.asInstanceOf[FileHeaderBlock].lastModificationTime) must_==
         "1988-08-13 19:11:55.800"
     }
     "File lastAccessTime is throws UnsupportedOperationException" in {
-      val sysdir = logicalVolume.rootBlock.blockForName("Disk.info").get
-      sysdir.asInstanceOf[FileHeaderBlock].lastAccessTime must
+      val file = logicalVolume.rootBlock.blockForName("Disk.info").get
+      file.asInstanceOf[FileHeaderBlock].lastAccessTime must
         throwA[UnsupportedOperationException]
+    }
+    "File rename is supported" in {
+      val file = logicalVolume.rootBlock.blockForName("Disk.info").get
+      file.name = "newname"
+      file.name must_== "newname"
+    }
+    "File rename with too many characters throws exception" in {
+      val file = logicalVolume.rootBlock.blockForName("Disk.info").get
+      (file.name = "a ridiculously long name that is too long") must
+        throwA[IllegalArgumentException]
+    }
+
+    "File comment change is supported" in {
+      val file = logicalVolume.rootBlock.blockForName("Disk.info").get
+      file.comment = "newcomment"
+      file.comment must_== "newcomment"
+    }
+    "File comment change with too many characters throws exception" in {
+      val file = logicalVolume.rootBlock.blockForName("Disk.info").get
+      (file.comment = "a ridiculously long comment that is too long even for the long comment field which is 79 characters") must
+        throwA[IllegalArgumentException]
     }
   }
 
