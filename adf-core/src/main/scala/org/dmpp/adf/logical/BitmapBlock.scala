@@ -99,7 +99,18 @@ with BitHelper {
   private def byteNumForIndex(relativeIndex: Int) = relativeIndex / 8
   private def bitNumForIndex(relativeIndex: Int) = relativeIndex % 8
 
+  /**
+   * All free indexes in this bitmap block, starting at index 0. The indexes
+   * are in ascending order.
+   * @return all free indexes in this bitmap block
+   */
   def freeBlockIndexes: List[Int] = countBitmapBitsWith(bitsSetIn _)
+
+  /**
+   * All used indexes in this bitmap block, starting at index 0. The indexes
+   * are in ascending order.
+   * @return all used indexes in this bitmap block
+   */
   def usedBlockIndexes: List[Int] = countBitmapBitsWith(bitsClearIn _)
 
   private def countBitmapBitsWith(countFunc: Int => List[Int]) = {

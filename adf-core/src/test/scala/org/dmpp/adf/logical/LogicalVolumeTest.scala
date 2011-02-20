@@ -146,6 +146,22 @@ object LogicalVolumeSpec extends Specification {
     "bitmap block computes the used blocks" in {
       logicalVolume.usedBlockNumbers.length must_== 1727
     }
+
+    "allocate a block on an empty disk" in {
+      val empty = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
+      empty.allocate must_== 882
+    }
+    "allocate a block where the blocks after 880 are all full" in {
+      val empty = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
+      for (block <- 882 until 1760) empty.allocate(block)
+      empty.allocate must_== 2
+    }
+    "allocate a block on a full volume" in {
+      val full = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
+      for (block <- 882 until 1760) full.allocate(block)
+      for (block <- 2 until 880) full.allocate(block)
+      full.allocate must throwA[DeviceIsFull]
+    }
   }
   def formatted(date: Date) = {
     val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")

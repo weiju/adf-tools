@@ -32,6 +32,8 @@ import org.dmpp.adf.util._
 import org.dmpp.adf.physical._
 import java.io._
 
+class DeviceIsFull extends Exception
+
 /**
  * A factory to create logical volume instances.
  */
@@ -98,12 +100,37 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
   def name = rootBlock.name
 
   /**
-   * Marks the specified block as used.
+   * Marks the specified block as used. This method directly allocates a
+   * block number in the system. It is recommended to use
+   * allocate() instead in order to let the volume automatically find the
+   * next available block.
    * @param blockNumber the block number to mark as used
    */
   def allocate(blockNumber: Int) {
+    // currently, we only support one bitmap block - no hard drives and
+    // HD disks
     val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
     bitmapBlock0.allocate(blockNumber - 2)
+  }
+
+  /**
+   * Retrieves the next free block on this volume. The allocation follows AmigaDOS:
+   * It starts looking at all blocks > 880 and if it can't find one, it
+   * searches for blocks > 1. If there is no free block to be found, DeviceIsFull
+   * is thrown.
+   * @return next free block number
+   */
+  def allocate: Int = {
+    // only one bitmap block is currently used, so we can use a simple, but
+    // slow algorithm.
+    val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
+    val freeBlocks = freeBlockNumbers
+    if (freeBlocks.length == 0) throw new DeviceIsFull
+    val freeBlocksGreater880 = freeBlocks.filter(i => i > 880)
+    val blockNumber = if (freeBlocksGreater880.length > 0) freeBlocksGreater880.head
+                        else freeBlocks.head
+    allocate(blockNumber)
+    blockNumber
   }
 
   /**
