@@ -82,9 +82,30 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     allocate(881) // bitmap block
   }
 
+  /**
+   * This volume's file system type. "OFS" for Original File System, "FFS" for
+   * Fast File System.
+   * @return the file system type
+   */
   def filesystemType = bootBlock.filesystemType
+
+  /**
+   * Writes the contents of this volume to the specified [[java.io.OutputStream]].
+   * @param out the OutputStream
+   */
   def writeToOutputStream(out: OutputStream) = physicalVolume.writeToOutputStream(out)
+
+  /**
+   * This volume's size in bytes.
+   * @return size in bytes
+   */
   def sizeInBytes = physicalVolume.sizeInBytes
+
+  /**
+   * Reads the byte at byteNum.
+   * @param byteNum the byte number
+   * @return the byte value at the specified position
+   */
   def apply(byteNum: Int) = physicalVolume(byteNum)
 
   /** This volume's boot block. */
