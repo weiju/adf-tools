@@ -86,6 +86,12 @@ trait DosFile {
   def name: String
 
   /**
+   * Returns the comment.
+   * @return comment
+   */
+  def comment: String
+
+  /**
    * Last access time. This is a property of non-root directories.
    * Called on the root directory or a file, this will throw an
    * UnsupportedOperationException.
@@ -105,6 +111,7 @@ trait Directory extends DosFile {
   def isDirectory = true
   def isFile      = false
   def list: List[DosFile]
+  def listDirectories: List[DosFile]
   def find(filename: String): Option[DosFile]
 }
 
@@ -120,6 +127,10 @@ trait ContainsHashtableBlock {
         throw new IllegalArgumentException("unknown block type: " + unknown.getClass)
     })
   }
+  def listDirectories: List[DosFile] = {
+    list.filter(file => file.isDirectory)
+  }
+
   def find(filename: String): Option[DosFile] = {
     val matchEntries = hashtableEntries.filter(e => e.name == filename)
     if (matchEntries.length > 0)
@@ -146,6 +157,7 @@ class RootDirectory(val logicalVolume: LogicalVolume)
 extends Directory with ContainsHashtableBlock {
   private def rootBlock    = logicalVolume.rootBlock 
   def name                 = rootBlock.name
+  def comment              = "(no comment)"
   def hashtableEntries     = rootBlock.hashtableEntries
   def lastModificationTime = rootBlock.lastModificationTime
   def lastAccessTime       = rootBlock.lastAccessTime
@@ -158,10 +170,12 @@ extends Directory with ContainsHashtableBlock {
  */
 abstract class AbstractDosFile(dirEntryBlock: DirectoryEntryBlock) extends DosFile {
   def name                 = dirEntryBlock.name
+  def comment              = dirEntryBlock.comment
   def lastAccessTime       = dirEntryBlock.lastAccessTime
   def lastModificationTime: Date = {
     throw new UnsupportedOperationException("not supported")
   }
+  override def toString = name
 }
 
 /**
@@ -271,4 +285,6 @@ class UserVolume(logicalVolume: LogicalVolume) {
    * @return last modification time
    */
   def lastModificationTime: Date = logicalVolume.rootBlock.diskLastModificationTime
+
+  override def toString = name + "[%s]".format(logicalVolume.filesystemType)
 }
