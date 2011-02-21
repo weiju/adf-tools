@@ -27,6 +27,7 @@
  */
 package org.dmpp.adf.gui
 
+import java.io._
 import javax.swing._
 import javax.swing.tree._
 import javax.swing.event._
@@ -44,6 +45,10 @@ import org.dmpp.adf.app._
 class AdfToolsFrame extends JFrame("ADF Tools") {
 
   var currentVolume: UserVolume = null
+  var currentDir: Directory = null
+  var saveAsItem: JMenuItem = null
+  var addFileItem: JMenuItem = null
+  var exportItem: JMenuItem = null
 
   val treeModel = new DirectoryTreeModel
   val tableModel = new DirectoryTableModel
@@ -58,17 +63,7 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
   makeLeftPane
   makeRightPane
   makeMenuBar
-  tree.addTreeSelectionListener(new TreeSelectionListener {
-    def valueChanged(e: TreeSelectionEvent) {
-      val path = e.getPath
-      val dir: Directory = path.getLastPathComponent match {
-        case v:UserVolume => v.rootDirectory
-        case d:UserDirectory => d
-        case _ => null
-      }
-      tableModel.currentDir = dir
-    }
-  })
+  addEventHandlers
 
   setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
   addWindowListener(new WindowAdapter {
@@ -78,12 +73,36 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
   })
   pack
 
+  private def addEventHandlers {
+    tree.addTreeSelectionListener(new TreeSelectionListener {
+      def valueChanged(e: TreeSelectionEvent) {
+        val path = e.getPath
+        val dir: Directory = path.getLastPathComponent match {
+          case v:UserVolume => v.rootDirectory
+          case d:UserDirectory => d
+          case _ => null
+        }
+        setCurrentDir(dir)
+      }
+    })
+    table.getSelectionModel.addListSelectionListener(new ListSelectionListener {
+      def valueChanged(e: ListSelectionEvent) {
+        if (!e.getValueIsAdjusting) {
+          val selectedRow = table.getSelectedRow
+          if (selectedRow >= 0 && selectedRow < tableModel.getRowCount) {
+            exportItem.setEnabled(currentDir.list(selectedRow).isFile)
+          }
+        }
+      }
+    })
+  }
   private def makeLeftPane {
     val scrollPane = new JScrollPane(tree)
     splitPane.setLeftComponent(scrollPane)
   }
 
   private def makeRightPane {
+    table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
     val scrollPane = new JScrollPane(table)
     splitPane.setRightComponent(scrollPane)
   }
@@ -101,29 +120,36 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
                 new ActionListener {
                   def actionPerformed(e: ActionEvent) = openAdfFile
                 })
-    addMenuItem(fileMenu, "Save as ADF file...",
-                new ActionListener {
-                  def actionPerformed(e: ActionEvent) = saveVolumeAs
-                })
-    addMenuItem(fileMenu, "Export selected file...",
-                new ActionListener {
-                  def actionPerformed(e: ActionEvent) = saveVolumeAs
-                })
+    saveAsItem = addMenuItem(fileMenu, "Save as ADF file...",
+                             new ActionListener {
+                               def actionPerformed(e: ActionEvent) = saveVolumeAs
+                             })
+    addFileItem = addMenuItem(fileMenu, "Add file...",
+                              new ActionListener {
+                                def actionPerformed(e: ActionEvent) = addFile
+                              })
+    exportItem = addMenuItem(fileMenu, "Export selected file...",
+                             new ActionListener {
+                               def actionPerformed(e: ActionEvent) = exportSelectedFile
+                             })
     if (!isMacOsX) {
       addMenuItem(fileMenu, "Quit",
                   new ActionListener {
                     def actionPerformed(e: ActionEvent) = System.exit(0)
                   })
     }
-
+    saveAsItem.setEnabled(false)
+    addFileItem.setEnabled(false)
+    exportItem.setEnabled(false)
     setJMenuBar(menubar)
   }
 
   private def addMenuItem(menu: JMenu, caption: String,
-                          listener: ActionListener) {
+                          listener: ActionListener): JMenuItem = {
     val item = new JMenuItem(caption)
     item.addActionListener(listener)
     menu.add(item)
+    item
   }
 
   private def isMacOsX: Boolean = System.getProperty("mrj.version") != null
@@ -142,10 +168,60 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
   private def setCurrentVolume(volume: UserVolume) {
     currentVolume         = volume
     treeModel.volume      = currentVolume
-    tableModel.currentDir = null
+    setCurrentDir(null)
+
+    saveAsItem.setEnabled(currentVolume != null)
   }
+  private def setCurrentDir(dir: Directory) {
+    currentDir = dir
+    tableModel.currentDir = dir
+
+    addFileItem.setEnabled(currentDir != null)
+    exportItem.setEnabled(false)
+  }
+
   private def saveVolumeAs {
-    println("TODO")
+    genericSaveAs("Save as ADF file...", out => currentVolume.writeToOutputStream(out))
+
+  }
+  private def genericSaveAs(dialogTitle: String, writeFunc : (OutputStream => Unit)) {
+    val fileChooser = new JFileChooser
+    fileChooser.setDialogTitle(dialogTitle)
+    fileChooser.setMultiSelectionEnabled(false)
+    if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+      val file = fileChooser.getSelectedFile
+      if (!file.exists || confirmOverwrite(file)) {
+        var out: FileOutputStream = null
+        try {
+          out = new FileOutputStream(file)
+          writeFunc(out)
+        } finally {
+          if (out != null) out.close
+        }
+      }
+    }
+  }
+
+  private def confirmOverwrite(file: File): Boolean = {
+    JOptionPane.showConfirmDialog(this, ("The file '%s' exists already. Do you " +
+                                  "want to overwrite it ?").format(file.getName),
+                                  "Overwrite existing file",
+                                  JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
+  }
+
+  private def addFile {
+    val fileChooser = new JFileChooser
+    fileChooser.setDialogTitle("Add file...")
+    fileChooser.setMultiSelectionEnabled(false)
+    if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+      val selectedFile = fileChooser.getSelectedFile
+      println("TODO: Add " + selectedFile)
+    }
+  }
+  private def exportSelectedFile {
+    val fileToExport = currentDir.list(table.getSelectedRow).asInstanceOf[UserFile]
+    genericSaveAs("Export selected file...",
+                  out => fileToExport.writeToOutputStream(out))
   }
 }
 

@@ -232,6 +232,8 @@ extends AbstractDosFile(fileHeaderBlock) {
     }
     result
   }
+
+  def writeToOutputStream(out: OutputStream) = out.write(dataBytes)
 }
 
 /**
@@ -285,6 +287,12 @@ class UserVolume(logicalVolume: LogicalVolume) {
    * @return last modification time
    */
   def lastModificationTime: Date = logicalVolume.rootBlock.diskLastModificationTime
+
+  /**
+   * Writes the contents of this volume to the specified [[java.io.OutputStream]].
+   * @param out the OutputStream
+   */
+  def writeToOutputStream(out: OutputStream) = logicalVolume.writeToOutputStream(out)
 
   override def toString = name + "[%s]".format(logicalVolume.filesystemType)
 }
