@@ -102,6 +102,18 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
   def sizeInBytes = physicalVolume.sizeInBytes
 
   /**
+   * This volume's block size in bytes.
+   * @return block size in bytes
+   */
+  def blockSizeInBytes = physicalVolume.bytesPerSector
+
+  /**
+   * Total number of blocks.
+   * @return total number of blocks
+   */
+  def numBlocksTotal = sizeInBytes / blockSizeInBytes
+
+  /**
    * Reads the byte at byteNum.
    * @param byteNum the byte number
    * @return the byte value at the specified position

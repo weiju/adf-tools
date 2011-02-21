@@ -107,12 +107,41 @@ trait DosFile {
    */
   def lastModificationTime: Date
 }
+
+/**
+ * Generic interface for directories.
+ */
 trait Directory extends DosFile {
   def isDirectory = true
   def isFile      = false
+
+  /**
+   * Lists all files in this directory.
+   * @return the list of all files in this directory
+   */
   def list: List[DosFile]
+
+  /**
+   * List only the sub directories in this directory.
+   * @return the list of sub directories
+   */
   def listDirectories: List[DosFile]
+
+  /**
+   * Try to retrieve a file with the specified name in this directory.
+   * Returns none if not found, or Some(file) if it exists.
+   * @param filename the name of the requested file
+   * @return None or Some(file)
+   */
   def find(filename: String): Option[DosFile]
+
+  /**
+   * Creates a new file from an array of bytes. If there is not enough space
+   * on the volume, a DeviceIsFull exception is thrown.
+   * @param filename the file name
+   * @param dataBytes the array of data bytes to write
+   */
+  def createFile(filename: String, dataBytes: Array[Byte])
 }
 
 trait ContainsHashtableBlock {
@@ -144,6 +173,9 @@ trait ContainsHashtableBlock {
       case file:FileHeaderBlock => new UserFile(logicalVolume, file)
       case _ => throw new IllegalArgumentException("unknowk block type")
     }
+  }
+  def createFile(filename: String, dataBytes: Array[Byte]) {
+    // TODO
   }
 }
 
@@ -200,16 +232,19 @@ with Directory with ContainsHashtableBlock {
 class UserFile(logicalVolume: LogicalVolume,
                fileHeaderBlock: FileHeaderBlock)
 extends AbstractDosFile(fileHeaderBlock) {
+
   def isDirectory = false
   def isFile      = true
   def size        = fileHeaderBlock.fileSize
+
   override def lastModificationTime: Date = {
     fileHeaderBlock.lastModificationTime
   }
-  private def copyDataBlock(blockNum: Int, result: Array[Byte],
-                            currentBytesCopied: Int) = {
-    currentBytesCopied
-  }
+
+  /**
+   * The data contained in this file.
+   * @return data bytes
+   */
   def dataBytes: Array[Byte] = {
     val dataBlockNums = fileHeaderBlock.dataBlocks
     val result = new Array[Byte](size)
@@ -233,6 +268,10 @@ extends AbstractDosFile(fileHeaderBlock) {
     result
   }
 
+  /**
+   * Write this file's data to the selected OutputStream.
+   * @param out the OutputStream to write to
+   */
   def writeToOutputStream(out: OutputStream) = out.write(dataBytes)
 }
 
@@ -294,5 +333,26 @@ class UserVolume(logicalVolume: LogicalVolume) {
    */
   def writeToOutputStream(out: OutputStream) = logicalVolume.writeToOutputStream(out)
 
+  /**
+   * Returns the number of free blocks.
+   * @return number of free blocks
+   */
+  def numFreeBlocks = logicalVolume.freeBlockNumbers.length
+
+  /**
+   * Returns the number of used blocks.
+   * @return nuber of used blocks
+   */
+  def numUsedBlocks = logicalVolume.usedBlockNumbers.length
+
+  def numBlocksTotal = logicalVolume.numBlocksTotal
+
+  def numBytesAvailable = numFreeBlocks * logicalVolume.blockSizeInBytes
+  def numBytesUsed      = numUsedBlocks * logicalVolume.blockSizeInBytes
+
+  /**
+   * Returns this volume's string representation.
+   * @return string representation
+   */
   override def toString = name + "[%s]".format(logicalVolume.filesystemType)
 }

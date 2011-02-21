@@ -32,8 +32,7 @@ import javax.swing._
 import javax.swing.tree._
 import javax.swing.event._
 import java.awt.event._
-import java.awt.BorderLayout
-import java.awt.Dimension
+import java.awt.{BorderLayout, Dimension, FlowLayout}
 
 import org.dmpp.adf.app._
 
@@ -49,6 +48,7 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
   var saveAsItem: JMenuItem = null
   var addFileItem: JMenuItem = null
   var exportItem: JMenuItem = null
+  var statusMessageLabel: JLabel = null
 
   val treeModel = new DirectoryTreeModel
   val tableModel = new DirectoryTableModel
@@ -63,6 +63,7 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
   makeLeftPane
   makeRightPane
   makeMenuBar
+  makeStatusBar
   addEventHandlers
 
   setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
@@ -144,6 +145,13 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     setJMenuBar(menubar)
   }
 
+  private def makeStatusBar {
+    val statusbar = new JPanel(new FlowLayout(FlowLayout.LEFT))
+    getContentPane.add(statusbar, BorderLayout.SOUTH)
+    statusMessageLabel = new JLabel("(no volume)")
+    statusbar.add(statusMessageLabel)
+  }
+
   private def addMenuItem(menu: JMenu, caption: String,
                           listener: ActionListener): JMenuItem = {
     val item = new JMenuItem(caption)
@@ -171,6 +179,13 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     setCurrentDir(null)
 
     saveAsItem.setEnabled(currentVolume != null)
+    if (currentVolume != null) {
+      statusMessageLabel.setText(("%d of %d blocks used, %d bytes free, " +
+                                  "%d bytes used").format(currentVolume.numUsedBlocks,
+                                                         currentVolume.numBlocksTotal,
+                                                         currentVolume.numBytesAvailable,
+                                                         currentVolume.numBytesUsed))
+    }
   }
   private def setCurrentDir(dir: Directory) {
     currentDir = dir
@@ -215,7 +230,17 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     fileChooser.setMultiSelectionEnabled(false)
     if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       val selectedFile = fileChooser.getSelectedFile
-      println("TODO: Add " + selectedFile)
+      val fileSize = selectedFile.length.asInstanceOf[Int]
+      printf("TODO: Add '%s' of size: %d\n", selectedFile, fileSize)
+      // TODO: normalize filename to 30 characters/Amiga encoding
+      var in: FileInputStream = null
+      try {
+        in = new FileInputStream(selectedFile)
+        val dataBytes = new Array[Byte](fileSize)
+        in.read(dataBytes)
+      } finally {
+        if (in != null) in.close
+      }
     }
   }
   private def exportSelectedFile {
