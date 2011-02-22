@@ -92,6 +92,12 @@ object LogicalVolumeSpec extends Specification {
     "lastAccessTime not supported" in {
       logicalVolume.rootBlock.lastAccessTime must throwA[UnsupportedOperationException]
     }
+    "update disk modification time" in {
+      logicalVolume.rootBlock.updateDiskLastModificationTime
+      val diff = System.currentTimeMillis -
+        logicalVolume.rootBlock.diskLastModificationTime.getTime
+      diff must beLessThan(1000L)
+    }
     "disk has workbench 1.3 name" in {
       logicalVolume.rootBlock.name must_== "Workbench1.3"
     }
@@ -141,10 +147,10 @@ object LogicalVolumeSpec extends Specification {
       bitmapBlock.computedChecksum must_== bitmapBlock.storedChecksum
     }
     "bitmap block computes the free blocks" in {
-      logicalVolume.freeBlockNumbers.length must_== 31
+      logicalVolume.numFreeBlocks must_== 31
     }
     "bitmap block computes the used blocks" in {
-      logicalVolume.usedBlockNumbers.length must_== 1727
+      logicalVolume.numUsedBlocks must_== 1727
     }
 
     "allocate a block on an empty disk" in {

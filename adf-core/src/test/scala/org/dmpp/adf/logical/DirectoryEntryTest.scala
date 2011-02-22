@@ -45,38 +45,43 @@ object DirectoryEntrySpec extends Specification {
 
   var physicalVolume: PhysicalVolume = null
   var logicalVolume: LogicalVolume = null
+  var emptyOFS: LogicalVolume = null
+  var emptyFFS: LogicalVolume = null
 
-  "LogicalVolume" should {
+  "DirectoryEntry" should {
 
     doBefore {
       var workbenchFile: InputStream = null
       try {
-        workbenchFile = getClass.getResourceAsStream("/wbench1.3.adf")
+        workbenchFile  = getClass.getResourceAsStream("/wbench1.3.adf")
         physicalVolume = PhysicalVolumeFactory.readDoubleDensityDisk(workbenchFile)
-        logicalVolume = new LogicalVolume(physicalVolume)
+        logicalVolume  = new LogicalVolume(physicalVolume)        
       } finally {
         if (workbenchFile != null) workbenchFile.close
       }
+      emptyFFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("Empty", "FFS")
+      emptyOFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("Empty", "OFS")
     }
 
     "System dir is a directory" in {
       val sysdir = logicalVolume.rootBlock.blockForName("System").get
       sysdir.isDirectory must beTrue
       sysdir.isFile must beFalse
+      sysdir.headerKey must_== 881
     }
-    "Disk.info should return gid and uid" in {
+    "Disk.info is a file" in {
       val diskInfo = logicalVolume.rootBlock.blockForName("Disk.info").get
       diskInfo.isDirectory must beFalse
       diskInfo.isFile must beTrue
     }
 
     // access rights
-    "System dir should return gid and uid" in {
+    "System dir returns gid and uid" in {
       val sysdir = logicalVolume.rootBlock.blockForName("System").get
       sysdir.uid must_== 0
       sysdir.gid must_== 0
     }
-    "Disk.info should return gid and uid" in {
+    "Disk.info returns gid and uid" in {
       val diskInfo = logicalVolume.rootBlock.blockForName("Disk.info").get
       diskInfo.uid must_== 0
       diskInfo.gid must_== 0
@@ -142,6 +147,74 @@ object DirectoryEntrySpec extends Specification {
       val file = logicalVolume.rootBlock.blockForName("Disk.info").get
       (file.comment = "a ridiculously long comment that is too long even for the long comment field which is 79 characters") must
         throwA[IllegalArgumentException]
+    }
+
+    "Disk.info has 1 data block" in {
+      val fileHeader = logicalVolume.rootBlock.blockForName("Disk.info").get.
+        asInstanceOf[FileHeaderBlock]
+      fileHeader.blockCount must_== 1
+    }
+    "Disk.info has root parent" in {
+      val fileHeader = logicalVolume.rootBlock.blockForName("Disk.info").get.
+        asInstanceOf[FileHeaderBlock]
+      fileHeader.parent must_== 880
+    }
+    "Disk.info changes parent" in {
+      val fileHeader = logicalVolume.rootBlock.blockForName("Disk.info").get.
+        asInstanceOf[FileHeaderBlock]
+      fileHeader.parent = 123
+      fileHeader.parent must_== 123
+    }
+
+    // general HeaderBlock data
+    "change a header key" in {
+      val sysdir = logicalVolume.rootBlock.blockForName("System").get
+      sysdir.headerKey = 42
+      sysdir.headerKey must_== 42
+    }
+    "change a secondary type" in {
+      val sysdir = logicalVolume.rootBlock.blockForName("System").get
+      sysdir.secondaryType = 4711
+      sysdir.secondaryType must_== 4711
+    }
+    "change next in hash" in {
+      val sysdir = logicalVolume.rootBlock.blockForName("System").get
+      sysdir.nextInHashBucket = 1234
+      sysdir.nextInHashBucket must_== 1234
+    }
+
+    "update last access time" in {
+      val sysdir = logicalVolume.rootBlock.blockForName("System").get
+      sysdir.updateLastAccessTime
+      (System.currentTimeMillis - sysdir.lastAccessTime.getTime) must beLessThan(1000l)
+    }
+
+    // initializing
+    "allocates a file header block" in {
+      val header = emptyFFS.allocateFileHeaderBlock(880, "myfile")
+      header.primaryType   must_== BlockType.PtShort
+      header.secondaryType must_== BlockType.StFile
+      header.headerKey must_== 882
+      header.parent must_== 880
+      header.name must_== "myfile"
+    }
+
+    "allocates an FFS data block" in {
+      val block = emptyFFS.allocateDataBlock(10, 1, 42)
+      block.maxDataBytes must_== 512
+      block.isOFS must beFalse
+      block.isFFS must beTrue
+    }
+    "allocates an OFS data block" in {
+      val block = emptyOFS.allocateDataBlock(10, 1, 42)
+      block.maxDataBytes must_== (512 - 24)
+      block.isOFS must beTrue
+      block.isFFS must beFalse
+      val ofsblock = block.asInstanceOf[OfsDataBlock]
+      ofsblock.primaryType must_== BlockType.PtData
+      ofsblock.headerKey must_== 10
+      ofsblock.seqNum must_== 1
+      ofsblock.dataSize must_== 42
     }
   }
 

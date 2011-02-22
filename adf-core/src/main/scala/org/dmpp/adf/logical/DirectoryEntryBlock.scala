@@ -52,11 +52,51 @@ with UsesHashtable {
 }
 
 /**
+ * Constants for FileHeaderBlock
+ */
+object FileHeaderBlock {
+  val OffsetBlockCount     = 8
+  val OffsetFirstDataBlock = 16
+}
+
+/**
  * A class to represent a file header block.
  */
 class FileHeaderBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(physicalVolume, blockNumber) {
+  import FileHeaderBlock._
+  def OffsetParent = sector.sizeInBytes - 12
+
+  /**
+   * Returns the number of blocks used in this block list.
+   * @return number of blocks
+   */
+  def blockCount           = sector.int32At(OffsetBlockCount)
+
+  /**
+   * Sets the number of blocks used in this block list.
+   * @param count the number of blocks used
+   */
+  def blockCount_=(count: Int) = sector.setInt32At(OffsetBlockCount, count)
+
+  def firstDataBlockNumber = sector.int32At(OffsetFirstDataBlock) 
   def fileSize  = sector.int32At(sector.sizeInBytes - 188)
+
+  def parent    = sector.int32At(OffsetParent)
+  def parent_=(newParent: Int) = sector.setInt32At(OffsetParent, newParent)
+
+  /**
+   * Initializes the data occupied by this block.
+   */
+  def initialize(parentBlock: Int, fileName: String) {
+    for (i <- 0 until sector.sizeInBytes) sector(i) = 0
+    primaryType = BlockType.PtShort
+    secondaryType = BlockType.StFile
+    headerKey  = blockNumber
+    parent     = parentBlock
+    name       = fileName
+  }
+
   def dataBlocks = {
     var result: List[Int] = Nil
     var pointer = sector.sizeInBytes - 204
@@ -91,8 +131,23 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
 /**
  * General interface for a data block.
  */
-trait DataBlock {
+trait DataBlock extends LogicalBlock {
+  /**
+   * Returns this block's data bytes.
+   * @return the data bytes
+   */
   def dataBytes: Array[Byte]
+
+  def maxDataBytes: Int
+  def isOFS: Boolean
+  def isFFS: Boolean
+}
+
+/**
+ * Symbolic constants for OfsDataBlock.
+ */
+object OfsDataBlock {
+  val HeaderSize = 24
 }
 
 /**
@@ -103,17 +158,38 @@ trait DataBlock {
  * @param physicalVolume a PhysicalVolume
  * @param blockNumber the block number of this block
  */
-class OfsDataBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
-extends DataBlock {
-  val sector = physicalVolume.sector(blockNumber)
+class OfsDataBlock(val physicalVolume: PhysicalVolume, blockNumber: Int)
+extends DataBlock with HasChecksum with SectorBasedChecksum {
+  import OfsDataBlock._
 
+  val sector = physicalVolume.sector(blockNumber)
+  def primaryType   = sector.int32At(0)
+  def headerKey     = sector.int32At(4)
+  def seqNum        = sector.int32At(8)
+  def dataSize      = sector.int32At(12)
+  def nextDataBlock = sector.int32At(16)
+  def storedChecksum = sector.int32At(20)
+  def computedChecksum = computeChecksum(20)
+  def recomputeChecksum = sector.setInt32At(20, computedChecksum)
+
+  def maxDataBytes = sector.sizeInBytes - HeaderSize
+
+  def initialize(headerBlock: Int, seqnum: Int, size: Int) {
+    for (i <- 0 until sector.sizeInBytes) sector(i) = 0
+    sector.setInt32At(0, BlockType.PtData)
+    sector.setInt32At(4, headerBlock)
+    sector.setInt32At(8, seqnum)
+    sector.setInt32At(12, size)
+  }
   def dataBytes = {
-    val result = new Array[Byte](sector.sizeInBytes - 24)
+    val result = new Array[Byte](sector.sizeInBytes - HeaderSize)
     for (i <- 0 until result.length) {
-        result(i) = sector(i + 24).asInstanceOf[Byte]
+        result(i) = sector(i + HeaderSize).asInstanceOf[Byte]
     }
     result
   }
+  def isOFS = true
+  def isFFS = false
 }
 
 /**
@@ -122,12 +198,19 @@ extends DataBlock {
  * @param physicalVolume a PhysicalVolume
  * @param blockNumber this block's block number
  */
-class FfsDataBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
+class FfsDataBlock(val physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DataBlock {
+  val sector = physicalVolume.sector(blockNumber)
+
+  def initialize {
+    for (i <- 0 until sector.sizeInBytes) sector(i) = 0
+  }
+  def maxDataBytes = sector.sizeInBytes
   def dataBytes = {
-    val sector = physicalVolume.sector(blockNumber)
     val result = new Array[Byte](sector.sizeInBytes)
     for (i <- 0 until sector.sizeInBytes) result(i) = sector(i).asInstanceOf[Byte]
     result
   }
+  def isOFS = false
+  def isFFS = true
 }

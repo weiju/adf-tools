@@ -175,7 +175,14 @@ trait ContainsHashtableBlock {
     }
   }
   def createFile(filename: String, dataBytes: Array[Byte]) {
-    // TODO
+    // TODO: Calculate number of required blocks:
+    // Need 1 file header block
+    // + enough data blocks to hold the data bytes
+    val numRequiredDataBlocks = dataBytes.length / logicalVolume.numBytesPerDataBlock
+    if (numRequiredDataBlocks > logicalVolume.numFreeBlocks) {
+      throw new DeviceIsFull
+    }
+    
   }
 }
 
@@ -247,6 +254,7 @@ extends AbstractDosFile(fileHeaderBlock) {
    */
   def dataBytes: Array[Byte] = {
     val dataBlockNums = fileHeaderBlock.dataBlocks
+    printf("HEADER KEY: %d\n", fileHeaderBlock.headerKey)
     val result = new Array[Byte](size)
     var currentBytesCopied = 0
     for (blockNum <- 0 until dataBlockNums.length) {
@@ -337,13 +345,13 @@ class UserVolume(logicalVolume: LogicalVolume) {
    * Returns the number of free blocks.
    * @return number of free blocks
    */
-  def numFreeBlocks = logicalVolume.freeBlockNumbers.length
+  def numFreeBlocks = logicalVolume.numFreeBlocks
 
   /**
    * Returns the number of used blocks.
    * @return nuber of used blocks
    */
-  def numUsedBlocks = logicalVolume.usedBlockNumbers.length
+  def numUsedBlocks = logicalVolume.numUsedBlocks
 
   def numBlocksTotal = logicalVolume.numBlocksTotal
 

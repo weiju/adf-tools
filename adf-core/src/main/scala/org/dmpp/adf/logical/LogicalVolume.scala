@@ -43,10 +43,11 @@ object LogicalVolumeFactory {
    * @param volume name (optional)
    * @return initialized [[org.dmpp.adf.logical.LogicalVolume]] instance
    */
-  def createEmptyDoubleDensityDisk(name: String = "Empty") = {
+  def createEmptyDoubleDensityDisk(name: String = "Empty",
+                                   filesystemType: String = "FFS") = {
     val logicalVolume =
       new LogicalVolume(PhysicalVolumeFactory.createEmptyDoubleDensityDisk)
-    logicalVolume.initialize(name)
+    logicalVolume.initialize(name, filesystemType)
     logicalVolume
   }
 }
@@ -167,20 +168,59 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
   }
 
   /**
-   * Retrieve the free block numbers on this logical volume.
-   * @return free block numbers
+   * Returns a new, initialized file header block. The block used by this block will
+   * be marked as used.
+   * @param parentBlock block number of parent
+   * @param name file name
+   * @param numDataBlocks number of data blocks
+   * @return a new, initialized FileHeaderBlock
    */
-  def freeBlockNumbers: List[Int] = {
+  def allocateFileHeaderBlock(parentBlock: Int, name: String): FileHeaderBlock = {
+    val blocknumber = allocate
+    val fileheader = new FileHeaderBlock(physicalVolume, blocknumber)
+    fileheader.initialize(parentBlock, name)
+    fileheader
+  }
+
+  /**
+   * Returns a new, initialized data block. The block used by this block will
+   * be marked as used.
+   * @return a new, initialized DataBlock
+   */
+  def allocateDataBlock(headerBlock: Int, seqnum: Int, dataSize: Int): DataBlock = {
+    val datablock = if (filesystemType == "OFS") {
+      val ofsblock = new OfsDataBlock(physicalVolume, allocate)
+      ofsblock.initialize(headerBlock, seqnum, dataSize)
+      ofsblock
+    } else if (filesystemType == "FFS") {
+      val ffsblock = new FfsDataBlock(physicalVolume, allocate)
+      ffsblock.initialize
+      ffsblock
+    } else {
+      throw new UnsupportedOperationException("unknown file system")
+    }
+    datablock
+  }
+
+  /**
+   * Returns the number of free blocks.
+   * @return number of free blocks
+   */
+  def numFreeBlocks = freeBlockNumbers.length
+
+  /**
+   * Returns the number of used blocks.
+   * @return number of used blocks
+   */
+  def numUsedBlocks = usedBlockNumbers.length
+
+  private def freeBlockNumbers: List[Int] = {
     val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
     bitmapBlock0.freeBlockIndexes.filter(index =>
       index < physicalVolume.numSectorsTotal - 2).map(index => index + 2)
   }
 
-  /**
-   * Retrieve the used block numbers on this logical volume.
-   * @return used block numbers
-   */
-  def usedBlockNumbers: List[Int] = {
+  private def usedBlockNumbers: List[Int] = {
     val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
     bitmapBlock0.usedBlockIndexes.filter(index =>
       index < physicalVolume.numSectorsTotal - 2).map(index => index + 2)
@@ -194,6 +234,12 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
   def dataBlock(dataBlockNumber: Int) = {
     if (filesystemType == "OFS") new OfsDataBlock(physicalVolume, dataBlockNumber)
     else if (filesystemType == "FFS") new FfsDataBlock(physicalVolume, dataBlockNumber)
+    else throw new UnsupportedOperationException("unknown file system type")
+  }
+
+  def numBytesPerDataBlock: Int = {
+    if (filesystemType == "FFS") blockSizeInBytes
+    else if (filesystemType == "OFS") blockSizeInBytes - OfsDataBlock.HeaderSize
     else throw new UnsupportedOperationException("unknown file system type")
   }
 }

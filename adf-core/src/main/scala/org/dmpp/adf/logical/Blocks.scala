@@ -54,6 +54,11 @@ object BlockType {
  */
 trait LogicalBlock {
   def physicalVolume: PhysicalVolume
+
+  /**
+   * Returns this block's underlying sector.
+   * @return the underlying sector
+   */
   def sector: Sector
 }
 
@@ -62,6 +67,9 @@ trait LogicalBlock {
  */
 object HeaderBlock {
   val NameMaxChars = 30
+  val OffsetPrimaryType = 0
+  val OffsetHeaderKey   = 4
+
 }
 
 /**
@@ -77,44 +85,53 @@ abstract class HeaderBlock(val physicalVolume: PhysicalVolume,
 extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   import HeaderBlock._
 
-  val sector          = physicalVolume.sector(sectorNumber)
+  val sector              = physicalVolume.sector(sectorNumber)
+  def OffsetSecondaryType = sector.sizeInBytes - 4
+  def OffsetName          = sector.sizeInBytes - 80
+  def OffsetHashNext      = sector.sizeInBytes - 16
 
   /**
    * Returns the block's primary type.
    * @return the primary type
    */
-  def primaryType     = sector.int32At(0)
+  def primaryType     = sector.int32At(OffsetPrimaryType)
 
   /**
    * Sets the block's primary type.
    * @param newType the new type
    */
-  def primaryType_=(newType: Int) = sector.setInt32At(0, newType)
+  def primaryType_=(newType: Int) = sector.setInt32At(OffsetPrimaryType, newType)
 
   /**
    * Returns this block's secondary type.
    * @return the secondary type
    */
-  def secondaryType   = sector.int32At(sector.sizeInBytes - 4)
+  def secondaryType   = sector.int32At(OffsetSecondaryType)
 
   /**
    * Sets the block's secondary type.
    * @param newType the new type
    */
-  def secondaryType_=(newType: Int) = sector.setInt32At(sector.sizeInBytes - 4,
-                                                         newType)
+  def secondaryType_=(newType: Int) = sector.setInt32At(OffsetSecondaryType,
+                                                        newType)
 
   /**
-   * Returns a pointer to this block's header.
-   * @return the pointer to the header
+   * Returns this block's block number.
+   * @return this block's block number
    */
-  def headerKey       = sector.int32At(4)
+  def headerKey       = sector.int32At(OffsetHeaderKey)
+
+  /**
+   * Changes this block's header key value.
+   * @param newKey new key value
+   */
+  def headerKey_=(newKey: Int) = sector.setInt32At(OffsetHeaderKey, newKey)
 
   /**
    * Returns the name field stored in this block.
    * @return this block's name
    */
-  def name: String = bcplStringAt(sector.sizeInBytes - 80, NameMaxChars)
+  def name: String = bcplStringAt(OffsetName, NameMaxChars)
 
   /**
    * Sets the name field for this block. If the length of newName exceeds
@@ -125,14 +142,20 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
     if (newName.length > NameMaxChars) {
       throw new IllegalArgumentException("max. 30 characters for name")
     }
-    setBcplStringAt(sector.sizeInBytes - 80, NameMaxChars, newName)
+    setBcplStringAt(OffsetName, NameMaxChars, newName)
   }
 
   /**
    * Returns the next block in the hash bucket list.
    * @return next block in hash bucket list
    */
-  def nextInHashBucket = sector.int32At(sector.sizeInBytes - 16)
+  def nextInHashBucket = sector.int32At(OffsetHashNext)
+
+  /**
+   * Sets the next block in the hash bucket list.
+   * @param next new next pointer
+   */
+  def nextInHashBucket_=(next: Int) = sector.setInt32At(OffsetHashNext, next)
 
   /**
    * Returns the last access time.
@@ -143,6 +166,18 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
                  sector.int32At(sector.sizeInBytes - 88),
                  sector.int32At(sector.sizeInBytes - 84)).toDate
   }
+
+  /**
+   * Sets the last access time to the current time.
+   */
+  def updateLastAccessTime {
+    import AmigaDosDateConversions._
+    val amigaDate: AmigaDosDate = new Date
+    sector.setInt32At(sector.sizeInBytes - 92, amigaDate.daysSinceJan_1_78)
+    sector.setInt32At(sector.sizeInBytes - 88, amigaDate.minutesPastMidnight)
+    sector.setInt32At(sector.sizeInBytes - 84, amigaDate.ticksPastLastMinute)
+  }
+
   def storedChecksum  = sector.int32At(20)
   def computedChecksum: Int = computeChecksum(20)
   def recomputeChecksum = sector.setInt32At(20, computedChecksum)

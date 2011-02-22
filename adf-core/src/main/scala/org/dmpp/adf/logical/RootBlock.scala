@@ -114,6 +114,14 @@ with UsesHashtable {
                  sector.int32At(sector.sizeInBytes - 36),
                  sector.int32At(sector.sizeInBytes - 32)).toDate
   }
+  def updateDiskLastModificationTime {
+    import AmigaDosDateConversions._
+    val amigaDate: AmigaDosDate = new Date
+    sector.setInt32At(sector.sizeInBytes - 40, amigaDate.daysSinceJan_1_78)
+    sector.setInt32At(sector.sizeInBytes - 36, amigaDate.minutesPastMidnight)
+    sector.setInt32At(sector.sizeInBytes - 32, amigaDate.ticksPastLastMinute)
+  }
+
   /**
    * Returns the creation time of the file system. This value is only generated
    * when a volume is initialized.

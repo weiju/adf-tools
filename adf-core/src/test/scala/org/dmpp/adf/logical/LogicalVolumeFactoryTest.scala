@@ -44,7 +44,10 @@ object LogicalVolumeFactorySpec extends Specification {
       val volume = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
       checkForValidBootBlock(volume)      
       checkForValidRootBlock(volume)
-      volume.usedBlockNumbers must_== List(880, 881)
+      volume.numUsedBlocks must_== 2
+      volume.allocate(880) must throwA[BlockAlreadyAllocated]
+      volume.allocate(881) must throwA[BlockAlreadyAllocated]
+      //volume.usedBlockNumbersTestOnly must_== List(880, 881)
       volume.name must_== "Empty"
       volume.bootBlock.filesystemType must_== "FFS"
     }
