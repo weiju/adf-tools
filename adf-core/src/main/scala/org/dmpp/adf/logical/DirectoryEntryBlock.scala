@@ -33,10 +33,13 @@ import org.dmpp.adf.physical._
 /**
  * A block that we can quickly wrap around a sector in order to determine
  * its type.
+ * @constructor creates an DirectoryEntryBlock instance
+ * @param physicalVolume a [[org.dmpp.adf.physical.PhysicalVolume]] instance
+ * @param blockNumber the block number
  */
 class DirectoryEntryBlock(physicalVolume: PhysicalVolume,
-                          sectorNumber: Int)
-extends HeaderBlock(physicalVolume, sectorNumber) with HasComment
+                          blockNumber: Int)
+extends HeaderBlock(physicalVolume, blockNumber) with HasComment
 with HasAccessRights {
   def isDirectory = secondaryType == BlockType.StUserDir
   def isFile      = secondaryType == BlockType.StFile
@@ -47,7 +50,7 @@ with HasAccessRights {
  */
 class UserDirectoryBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(physicalVolume, blockNumber)
-with UsesHashtable {
+with DirectoryBlock {
   def parentBlock = sector.int32At(sector.sizeInBytes - 12)
 }
 
@@ -65,7 +68,8 @@ object FileHeaderBlock {
 class FileHeaderBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(physicalVolume, blockNumber) {
   import FileHeaderBlock._
-  def OffsetParent = sector.sizeInBytes - 12
+  def OffsetParent          = sector.sizeInBytes - 12
+  def OffsetDataBlockIndex0 = sector.sizeInBytes - 204
 
   /**
    * Returns the number of blocks used in this block list.
@@ -80,7 +84,11 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
   def blockCount_=(count: Int) = sector.setInt32At(OffsetBlockCount, count)
 
   def firstDataBlockNumber = sector.int32At(OffsetFirstDataBlock) 
+  def firstDataBlockNumber_=(blockNumber: Int) {
+    sector.setInt32At(OffsetFirstDataBlock, blockNumber)
+  }
   def fileSize  = sector.int32At(sector.sizeInBytes - 188)
+  def fileSize_=(size: Int) = sector.setInt32At(sector.sizeInBytes - 188, size)
 
   def parent    = sector.int32At(OffsetParent)
   def parent_=(newParent: Int) = sector.setInt32At(OffsetParent, newParent)
@@ -97,17 +105,30 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
     name       = fileName
   }
 
+  def dataBlock(index: Int): Int = {
+    val offset = OffsetDataBlockIndex0 - index * 4    
+    if (offset < 24) {
+      throw new UnsupportedOperationException("Large files not supported yet")
+    } else sector.int32At(offset)
+  }
+  def setDataBlock(index: Int, blockNumber: Int) {
+    val offset = OffsetDataBlockIndex0 - index * 4
+    if (offset < 24) {
+      throw new UnsupportedOperationException("Large files not supported yet")
+    } else sector.setInt32At(offset, blockNumber)
+  }
+
   def dataBlocks = {
     var result: List[Int] = Nil
-    var pointer = sector.sizeInBytes - 204
+    var offset = OffsetDataBlockIndex0
     var atLastBlock = fileSize == 0
     while (!atLastBlock) {
-      val blocknum = sector.int32At(pointer)
+      val blocknum = sector.int32At(offset)
       if (blocknum > 0) result ::= blocknum
-      pointer -= 4
-      atLastBlock = (pointer < 24) || blocknum <= 0
+      offset -= 4
+      atLastBlock = (offset < 24) || blocknum <= 0
     }
-    if (pointer < 24) {
+    if (offset < 24) {
       throw new UnsupportedOperationException("Large files not supported yet")
     }
     result.reverse
@@ -132,6 +153,10 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
  * General interface for a data block.
  */
 trait DataBlock extends LogicalBlock {
+  def blockNumber: Int
+  def apply(index: Int): Int
+  def update(index: Int, value: Int)
+
   /**
    * Returns this block's data bytes.
    * @return the data bytes
@@ -158,7 +183,7 @@ object OfsDataBlock {
  * @param physicalVolume a PhysicalVolume
  * @param blockNumber the block number of this block
  */
-class OfsDataBlock(val physicalVolume: PhysicalVolume, blockNumber: Int)
+class OfsDataBlock(val physicalVolume: PhysicalVolume, val blockNumber: Int)
 extends DataBlock with HasChecksum with SectorBasedChecksum {
   import OfsDataBlock._
 
@@ -168,6 +193,9 @@ extends DataBlock with HasChecksum with SectorBasedChecksum {
   def seqNum        = sector.int32At(8)
   def dataSize      = sector.int32At(12)
   def nextDataBlock = sector.int32At(16)
+  def nextDataBlock_=(nextBlock: Int) {
+    sector.setInt32At(16, nextBlock)
+  }
   def storedChecksum = sector.int32At(20)
   def computedChecksum = computeChecksum(20)
   def recomputeChecksum = sector.setInt32At(20, computedChecksum)
@@ -188,6 +216,8 @@ extends DataBlock with HasChecksum with SectorBasedChecksum {
     }
     result
   }
+  def apply(index: Int) = sector(index + HeaderSize) & 0xff
+  def update(index: Int, value: Int) = sector(index + HeaderSize) = (value & 0xff)
   def isOFS = true
   def isFFS = false
 }
@@ -198,7 +228,7 @@ extends DataBlock with HasChecksum with SectorBasedChecksum {
  * @param physicalVolume a PhysicalVolume
  * @param blockNumber this block's block number
  */
-class FfsDataBlock(val physicalVolume: PhysicalVolume, blockNumber: Int)
+class FfsDataBlock(val physicalVolume: PhysicalVolume, val blockNumber: Int)
 extends DataBlock {
   val sector = physicalVolume.sector(blockNumber)
 
@@ -211,6 +241,8 @@ extends DataBlock {
     for (i <- 0 until sector.sizeInBytes) result(i) = sector(i).asInstanceOf[Byte]
     result
   }
+  def apply(index: Int) = sector(index) & 0xff
+  def update(index: Int, value: Int) = sector(index) = (value & 0xff)
   def isOFS = false
   def isFFS = true
 }

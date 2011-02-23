@@ -78,14 +78,14 @@ object HeaderBlock {
  *
  * @constructor creates a header block for a sector on a volume
  * @param physicalVolume a physical volume
- * @param sectorNumber a sector number
+ * @param blockNumber a block number
  */
 abstract class HeaderBlock(val physicalVolume: PhysicalVolume,
-                           val sectorNumber: Int)
+                           val blockNumber: Int)
 extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   import HeaderBlock._
 
-  val sector              = physicalVolume.sector(sectorNumber)
+  val sector              = physicalVolume.sector(blockNumber)
   def OffsetSecondaryType = sector.sizeInBytes - 4
   def OffsetName          = sector.sizeInBytes - 80
   def OffsetHashNext      = sector.sizeInBytes - 16

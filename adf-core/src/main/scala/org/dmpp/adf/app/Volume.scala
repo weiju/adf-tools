@@ -40,10 +40,14 @@ import org.dmpp.adf.physical._
 object UserVolumeFactory {
   /**
    * Create an empty, initialized DD disk.
+   * @param name disk name
+   * @param filesystemType either "OFS" or "FFS", default is "FFS"
    * @return empty user volume of DD size
    */
-  def createEmptyDoubleDensityDisk(name: String = "Empty") = {
-    new UserVolume(LogicalVolumeFactory.createEmptyDoubleDensityDisk(name))
+  def createEmptyDoubleDensityDisk(name: String = "Empty",
+                                   filesystemType: String = "FFS") = {
+    new UserVolume(LogicalVolumeFactory.createEmptyDoubleDensityDisk(name,
+                                                                     filesystemType))
   }
 
   /**
@@ -141,10 +145,12 @@ trait Directory extends DosFile {
    * @param filename the file name
    * @param dataBytes the array of data bytes to write
    */
-  def createFile(filename: String, dataBytes: Array[Byte])
+  def createFile(filename: String, dataBytes: Array[Byte]): UserFile
 }
 
 trait ContainsHashtableBlock {
+  def thisDirectoryBlock: DirectoryBlock
+  def blockNumber: Int
   def hashtableEntries: List[DirectoryEntryBlock]
   def logicalVolume: LogicalVolume
 
@@ -174,15 +180,72 @@ trait ContainsHashtableBlock {
       case _ => throw new IllegalArgumentException("unknowk block type")
     }
   }
-  def createFile(filename: String, dataBytes: Array[Byte]) {
-    // TODO: Calculate number of required blocks:
+  def createFile(filename: String, dataBytes: Array[Byte]) = {
     // Need 1 file header block
     // + enough data blocks to hold the data bytes
-    val numRequiredDataBlocks = dataBytes.length / logicalVolume.numBytesPerDataBlock
+    val fileHeader = createFileHeaderForNewFile(filename, dataBytes.length)
+    writeDataToBlocks(fileHeader, dataBytes)
+    fileHeader.recomputeChecksum
+    new UserFile(logicalVolume, fileHeader)
+  }
+
+  private def writeDataToBlocks(fileHeader: FileHeaderBlock, dataBytes: Array[Byte]) {
+    val dataBlocks = allocateDataBlocks(fileHeader.headerKey, dataBytes.length)
+    var srcPos = 0
+    if (dataBlocks.length > 0) {
+      fileHeader.firstDataBlockNumber = dataBlocks(0).blockNumber
+      for (i <- 0 until dataBlocks.length) {
+        val dataBlock = dataBlocks(i)
+        srcPos = fillDataBlock(dataBlock, dataBytes, srcPos)
+
+        fileHeader.setDataBlock(i, dataBlock.blockNumber)
+        if (logicalVolume.filesystemType == "OFS") {
+          val ofsBlock = dataBlock.asInstanceOf[OfsDataBlock]
+          if (i < dataBlocks.length - 1) {
+            ofsBlock.nextDataBlock = dataBlocks(i + 1).blockNumber
+          }
+          ofsBlock.recomputeChecksum
+        }
+      }
+    }
+  }
+
+  private def fillDataBlock(dataBlock: DataBlock, dataBytes: Array[Byte],
+                            srcIndex: Int) = {
+    var srcPos = srcIndex
+    var destPos = 0
+    while (srcPos < dataBytes.length && destPos < dataBlock.maxDataBytes) {
+      dataBlock(destPos) = dataBytes(srcPos)
+      destPos += 1
+      srcPos += 1
+    }
+    srcPos
+  }
+  private def createFileHeaderForNewFile(filename: String, fileSize: Int) = {
+    val numRequiredDataBlocks = fileSize / logicalVolume.numBytesPerDataBlock
     if (numRequiredDataBlocks > logicalVolume.numFreeBlocks) {
       throw new DeviceIsFull
     }
-    
+    val fileHeader = logicalVolume.allocateFileHeaderBlock(blockNumber, filename)
+    thisDirectoryBlock.addToHashtable(fileHeader)
+    fileHeader.blockCount = numRequiredDataBlocks
+    fileHeader.fileSize = fileSize
+    fileHeader.updateLastAccessTime
+    fileHeader
+  }
+
+  private def allocateDataBlocks(fileHeaderNum: Int, dataSize: Int): List[DataBlock] = {
+    var numRequiredDataBlocks = dataSize / logicalVolume.numBytesPerDataBlock
+    if ((dataSize % logicalVolume.numBytesPerDataBlock) > 0) numRequiredDataBlocks += 1
+    var dataBlocks: List[DataBlock] = Nil
+    var remainSize = dataSize
+    for (i <- 0 until numRequiredDataBlocks) {
+      val dataSize = math.min(remainSize, logicalVolume.numBytesPerDataBlock)
+      dataBlocks ::= logicalVolume.allocateDataBlock(fileHeaderNum,
+                                                     i + 1, dataSize)
+      remainSize -= dataSize
+    }
+    dataBlocks.reverse
   }
 }
 
@@ -194,7 +257,9 @@ trait ContainsHashtableBlock {
  */
 class RootDirectory(val logicalVolume: LogicalVolume)
 extends Directory with ContainsHashtableBlock {
-  private def rootBlock    = logicalVolume.rootBlock 
+  private def rootBlock    = logicalVolume.rootBlock
+  def thisDirectoryBlock   = rootBlock
+  def blockNumber          = rootBlock.blockNumber
   def name                 = rootBlock.name
   def comment              = "(no comment)"
   def hashtableEntries     = rootBlock.hashtableEntries
@@ -207,7 +272,7 @@ extends Directory with ContainsHashtableBlock {
  * @constructor creates a new AbstractDosFile instance
  * @param dirEntryBlock a DirectoryEntryBlock
  */
-abstract class AbstractDosFile(dirEntryBlock: DirectoryEntryBlock) extends DosFile {
+abstract class AbstractDosFile(val dirEntryBlock: DirectoryEntryBlock) extends DosFile {
   def name                 = dirEntryBlock.name
   def comment              = dirEntryBlock.comment
   def lastAccessTime       = dirEntryBlock.lastAccessTime
@@ -227,7 +292,9 @@ class UserDirectory(val logicalVolume: LogicalVolume,
                     directoryBlock: UserDirectoryBlock)
 extends AbstractDosFile(directoryBlock)
 with Directory with ContainsHashtableBlock {
-  def hashtableEntries = directoryBlock.hashtableEntries
+  def thisDirectoryBlock = directoryBlock
+  def blockNumber        = directoryBlock.blockNumber
+  def hashtableEntries   = directoryBlock.hashtableEntries
 }
 
 /**
@@ -237,7 +304,7 @@ with Directory with ContainsHashtableBlock {
  * @param fileHeaderBlock the file header block
  */
 class UserFile(logicalVolume: LogicalVolume,
-               fileHeaderBlock: FileHeaderBlock)
+               val fileHeaderBlock: FileHeaderBlock)
 extends AbstractDosFile(fileHeaderBlock) {
 
   def isDirectory = false
@@ -254,7 +321,6 @@ extends AbstractDosFile(fileHeaderBlock) {
    */
   def dataBytes: Array[Byte] = {
     val dataBlockNums = fileHeaderBlock.dataBlocks
-    printf("HEADER KEY: %d\n", fileHeaderBlock.headerKey)
     val result = new Array[Byte](size)
     var currentBytesCopied = 0
     for (blockNum <- 0 until dataBlockNums.length) {
