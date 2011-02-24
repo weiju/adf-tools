@@ -137,4 +137,10 @@ trait DirectoryBlock { self : HeaderBlock =>
   private def setBlockAtHashtableIndex(index: Int, blockNumber: Int) {
     sector.setInt32At(OffsetHashtable + index * 4, blockNumber)
   }
+
+  /**
+   * This is just here to make the compiler happy, ideally it should
+   * just get it from the HeaderBlock
+   */
+  def recomputeChecksum
 }

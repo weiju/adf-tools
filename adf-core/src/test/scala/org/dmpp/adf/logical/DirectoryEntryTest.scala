@@ -100,7 +100,7 @@ object DirectoryEntrySpec extends Specification {
 
     "System dir has root block as parent" in {
       val sysdir = logicalVolume.rootBlock.blockForName("System").get
-      sysdir.asInstanceOf[UserDirectoryBlock].parentBlock must_== 880
+      sysdir.asInstanceOf[UserDirectoryBlock].parent must_== 880
     }
     "System dir lastAccessTime is supported" in {
       val sysdir = logicalVolume.rootBlock.blockForName("System").get

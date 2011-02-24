@@ -46,11 +46,13 @@ object UserVolumeSpec extends Specification {
     var emptyDisk: UserVolume = null
     var emptyDiskOFS: UserVolume = null
     var workbenchDisk: UserVolume = null
+
     doBefore {
       workbenchDisk = UserVolumeFactory.readFromFile(workbenchFile)
       emptyDisk = UserVolumeFactory.createEmptyDoubleDensityDisk()
       emptyDiskOFS = UserVolumeFactory.createEmptyDoubleDensityDisk("OFSEmpty", "OFS")
     }
+
     "read workbench root directory" in {
       workbenchDisk.name must_== "Workbench1.3"
       workbenchDisk.toString must_== "Workbench1.3[OFS]"
@@ -86,91 +88,6 @@ object UserVolumeSpec extends Specification {
       workbenchDisk.select("c").length must_== 63
     }
 
-    "create an FFS file" in {
-      val data: Array[Byte] = Array(0xde.asInstanceOf[Byte],
-                                    0xad.asInstanceOf[Byte],
-                                    0xbe.asInstanceOf[Byte],
-                                    0xef.asInstanceOf[Byte])
-      emptyDisk.rootDirectory.createFile("steak", data)
-      val file = emptyDisk.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.storedChecksum must_== file.fileHeaderBlock.computedChecksum
-      file.fileHeaderBlock.fileSize must_== 4
-
-      val resultData = file.dataBytes
-      resultData.length must_== 4
-
-      resultData(0) & 0xff must_== 0xde
-      resultData(1) & 0xff must_== 0xad
-      resultData(2) & 0xff must_== 0xbe
-      resultData(3) & 0xff must_== 0xef
-    }
-
-    "create an FFS file that spans two blocks" in {
-      val data = new Array[Byte](1024)
-      for (i <- 0 to 1020 by 4) {
-        data(i)     = 0xde.asInstanceOf[Byte]
-        data(i + 1) = 0xad.asInstanceOf[Byte]
-        data(i + 2) = 0xbe.asInstanceOf[Byte]
-        data(i + 3) = 0xef.asInstanceOf[Byte]
-      }
-      emptyDisk.rootDirectory.createFile("steak", data)
-      val file = emptyDisk.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.storedChecksum must_== file.fileHeaderBlock.computedChecksum
-      file.fileHeaderBlock.fileSize must_== 1024
-
-      val resultData = file.dataBytes
-
-      resultData.length must_== 1024
-      for (i <- 0 to 1020 by 4) {
-        resultData(i + 0) & 0xff must_== 0xde
-        resultData(i + 1) & 0xff must_== 0xad
-        resultData(i + 2) & 0xff must_== 0xbe
-        resultData(i + 3) & 0xff must_== 0xef
-      }
-    }
-
-    "create an OFS file" in {
-      val data: Array[Byte] = Array(0xde.asInstanceOf[Byte],
-                                    0xad.asInstanceOf[Byte],
-                                    0xbe.asInstanceOf[Byte],
-                                    0xef.asInstanceOf[Byte])
-      emptyDiskOFS.rootDirectory.createFile("steak", data)
-      val file = emptyDiskOFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.storedChecksum must_== file.fileHeaderBlock.computedChecksum
-      file.fileHeaderBlock.fileSize must_== 4
-
-      val resultData = file.dataBytes
-      resultData.length must_== 4
-
-      resultData(0) & 0xff must_== 0xde
-      resultData(1) & 0xff must_== 0xad
-      resultData(2) & 0xff must_== 0xbe
-      resultData(3) & 0xff must_== 0xef
-    }
-
-    "create an OFS file that spans three blocks" in {
-      val data = new Array[Byte](1024)
-      for (i <- 0 to 1020 by 4) {
-        data(i)     = 0xde.asInstanceOf[Byte]
-        data(i + 1) = 0xad.asInstanceOf[Byte]
-        data(i + 2) = 0xbe.asInstanceOf[Byte]
-        data(i + 3) = 0xef.asInstanceOf[Byte]
-      }
-      emptyDiskOFS.rootDirectory.createFile("steak", data)
-      val file = emptyDiskOFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.storedChecksum must_== file.fileHeaderBlock.computedChecksum
-      file.fileHeaderBlock.fileSize must_== 1024
-
-      val resultData = file.dataBytes
-
-      resultData.length must_== 1024
-      for (i <- 0 to 1020 by 4) {
-        resultData(i + 0) & 0xff must_== 0xde
-        resultData(i + 1) & 0xff must_== 0xad
-        resultData(i + 2) & 0xff must_== 0xbe
-        resultData(i + 3) & 0xff must_== 0xef
-      }
-    }
   }
   def formatted(date: Date) = {
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")

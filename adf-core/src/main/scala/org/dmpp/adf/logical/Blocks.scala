@@ -89,6 +89,7 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   def OffsetSecondaryType = sector.sizeInBytes - 4
   def OffsetName          = sector.sizeInBytes - 80
   def OffsetHashNext      = sector.sizeInBytes - 16
+  def OffsetParent        = sector.sizeInBytes - 12
 
   /**
    * Returns the block's primary type.
@@ -181,4 +182,7 @@ extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
   def storedChecksum  = sector.int32At(20)
   def computedChecksum: Int = computeChecksum(20)
   def recomputeChecksum = sector.setInt32At(20, computedChecksum)
+
+  def parent    = sector.int32At(OffsetParent)
+  def parent_=(newParent: Int) = sector.setInt32At(OffsetParent, newParent)
 }

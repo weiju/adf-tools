@@ -41,8 +41,8 @@ class DirectoryEntryBlock(physicalVolume: PhysicalVolume,
                           blockNumber: Int)
 extends HeaderBlock(physicalVolume, blockNumber) with HasComment
 with HasAccessRights {
-  def isDirectory = secondaryType == BlockType.StUserDir
-  def isFile      = secondaryType == BlockType.StFile
+  def isDirectory  = secondaryType == BlockType.StUserDir
+  def isFile       = secondaryType == BlockType.StFile
 }
 
 /**
@@ -51,7 +51,6 @@ with HasAccessRights {
 class UserDirectoryBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(physicalVolume, blockNumber)
 with DirectoryBlock {
-  def parentBlock = sector.int32At(sector.sizeInBytes - 12)
 }
 
 /**
@@ -68,7 +67,6 @@ object FileHeaderBlock {
 class FileHeaderBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(physicalVolume, blockNumber) {
   import FileHeaderBlock._
-  def OffsetParent          = sector.sizeInBytes - 12
   def OffsetDataBlockIndex0 = sector.sizeInBytes - 204
 
   /**
@@ -89,9 +87,6 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
   }
   def fileSize  = sector.int32At(sector.sizeInBytes - 188)
   def fileSize_=(size: Int) = sector.setInt32At(sector.sizeInBytes - 188, size)
-
-  def parent    = sector.int32At(OffsetParent)
-  def parent_=(newParent: Int) = sector.setInt32At(OffsetParent, newParent)
 
   /**
    * Initializes the data occupied by this block.

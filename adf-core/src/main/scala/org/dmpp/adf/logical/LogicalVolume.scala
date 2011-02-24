@@ -163,6 +163,9 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
     val freeBlocksGreater880 = freeBlocks.filter(i => i > 880)
     val blockNumber = if (freeBlocksGreater880.length > 0) freeBlocksGreater880.head
                         else freeBlocks.head
+    //println("Free Blocks: " + numFreeBlocks)
+    //println("Used Blocks: " + usedBlockNumbers)
+    //println("Allocating block number: " + blockNumber)
     allocate(blockNumber)
     blockNumber
   }

@@ -186,6 +186,7 @@ trait ContainsHashtableBlock {
     val fileHeader = createFileHeaderForNewFile(filename, dataBytes.length)
     writeDataToBlocks(fileHeader, dataBytes)
     fileHeader.recomputeChecksum
+    thisDirectoryBlock.recomputeChecksum
     new UserFile(logicalVolume, fileHeader)
   }
 
@@ -355,7 +356,7 @@ extends AbstractDosFile(fileHeaderBlock) {
  *   instance.
  * @param logicalVolume a LogicalVolume instance
  */
-class UserVolume(logicalVolume: LogicalVolume) {
+class UserVolume(val logicalVolume: LogicalVolume) {
   /**
    * Return this volume's name.
    * @return this volume's name

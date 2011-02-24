@@ -171,7 +171,8 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     }
   }
   private def newFfsVolume {
-    setCurrentVolume(UserVolumeFactory.createEmptyDoubleDensityDisk())
+    //setCurrentVolume(UserVolumeFactory.createEmptyDoubleDensityDisk())
+    setCurrentVolume(UserVolumeFactory.createEmptyDoubleDensityDisk("Empty", "OFS"))
   }
   private def setCurrentVolume(volume: UserVolume) {
     currentVolume         = volume
@@ -231,13 +232,14 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       val selectedFile = fileChooser.getSelectedFile
       val fileSize = selectedFile.length.asInstanceOf[Int]
-      printf("TODO: Add '%s' of size: %d\n", selectedFile, fileSize)
+      printf("TODO: Add '%s' of size: %d\n", selectedFile.getName, fileSize)
       // TODO: normalize filename to 30 characters/Amiga encoding
       var in: FileInputStream = null
       try {
         in = new FileInputStream(selectedFile)
         val dataBytes = new Array[Byte](fileSize)
         in.read(dataBytes)
+        currentDir.createFile(selectedFile.getName, dataBytes)
       } finally {
         if (in != null) in.close
       }

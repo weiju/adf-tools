@@ -168,6 +168,15 @@ object LogicalVolumeSpec extends Specification {
       for (block <- 2 until 880) full.allocate(block)
       full.allocate must throwA[DeviceIsFull]
     }
+    "allocate block 885 on an empty disk" in {
+      val empty = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
+      empty.numFreeBlocks must_== 1756
+      empty.allocate(882)
+      empty.allocate(883)
+      empty.allocate(884)
+      empty.allocate(885)
+      empty.numFreeBlocks must_== 1752
+    }
   }
   def formatted(date: Date) = {
     val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
