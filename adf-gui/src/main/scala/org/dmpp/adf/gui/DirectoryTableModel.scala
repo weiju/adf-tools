@@ -29,8 +29,14 @@ package org.dmpp.adf.gui
 
 import javax.swing.table._
 import org.dmpp.adf.app._
+import java.text.SimpleDateFormat
+
+object DirectoryTableModel {
+  val DateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm")
+}
 
 class DirectoryTableModel extends AbstractTableModel {
+  import DirectoryTableModel._
   
   var _currentDir: Directory = null
   def currentDir = _currentDir
@@ -39,7 +45,7 @@ class DirectoryTableModel extends AbstractTableModel {
     fireTableDataChanged
   }
   
-  val Headers = Array("Name", "Size", "Last Access/Modified", "Comment")
+  val Headers = Array("Name", "Size", "Last Modified")
   def getRowCount = {
     if (_currentDir == null) 0 else _currentDir.list.length
   }
@@ -60,9 +66,9 @@ class DirectoryTableModel extends AbstractTableModel {
       case 1 =>
         if (file.isDirectory) "-" else file.asInstanceOf[UserFile].size.toString
       case 2 =>
-        if (file.isDirectory) file.lastAccessTime
+        val date  = if (file.isDirectory) file.lastAccessTime
         else file.lastModificationTime
-      case 3 => file.comment
+        DateFormat.format(date)
       case _ => "???"
     }
   }

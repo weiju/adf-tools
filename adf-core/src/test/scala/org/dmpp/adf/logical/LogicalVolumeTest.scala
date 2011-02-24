@@ -68,8 +68,7 @@ object LogicalVolumeSpec extends Specification {
       logicalVolume.bootBlock.storedChecksum must_== 0x2325e2fd
     }
     "boot block compute a valid checksum" in {
-      logicalVolume.bootBlock.computedChecksum must_==
-        logicalVolume.bootBlock.storedChecksum
+      logicalVolume.bootBlock.checksumIsValid must beTrue
     }
     "root block number in boot block must be 880" in {
       logicalVolume.bootBlock.rootBlockNumber must_== 880

@@ -82,7 +82,7 @@ object HeaderBlock {
  */
 abstract class HeaderBlock(val physicalVolume: PhysicalVolume,
                            val blockNumber: Int)
-extends LogicalBlock with ReadsBcplStrings with SectorBasedChecksum {
+extends LogicalBlock with ReadsBcplStrings with HasChecksum with SectorBasedChecksum {
   import HeaderBlock._
 
   val sector              = physicalVolume.sector(blockNumber)

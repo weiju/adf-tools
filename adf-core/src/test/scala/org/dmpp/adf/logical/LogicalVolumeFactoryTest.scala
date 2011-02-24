@@ -65,7 +65,7 @@ object LogicalVolumeFactorySpec extends Specification {
       volume.rootBlock.bitmapIsValid must beTrue
       volume.rootBlock.name must_== "Empty"
       volume.rootBlock.hashtableSize must_== 0x48 // = 72
-      volume.rootBlock.storedChecksum must_== volume.rootBlock.computedChecksum
+      volume.rootBlock.checksumIsValid must beTrue
       volume.rootBlock.bitmapBlockIdAt(0) must_== 881
       volume.rootBlock.bitmapBlockIdAt(1) must_== 0
     }

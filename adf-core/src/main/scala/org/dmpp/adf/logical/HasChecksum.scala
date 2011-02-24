@@ -35,6 +35,11 @@ import org.dmpp.adf.util._
 trait HasChecksum {
 
   /**
+   * Checks whether the currently stored checksum is valid
+   */
+  def checksumIsValid = storedChecksum == computedChecksum
+
+  /**
    * Returns the currently stored checksum for this block.
    * @return the currently stored checksum
    */

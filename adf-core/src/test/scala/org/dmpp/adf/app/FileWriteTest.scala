@@ -61,7 +61,7 @@ object FileWriteSpec extends Specification {
       emptyDiskFFS.logicalVolume.rootBlock.bitmapIsValid must beTrue
 
       val file = emptyDiskFFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.storedChecksum must_== file.fileHeaderBlock.computedChecksum
+      file.fileHeaderBlock.checksumIsValid must beTrue
       file.fileHeaderBlock.fileSize must_== 4
       file.fileHeaderBlock.parent must_== 880
 
@@ -84,7 +84,7 @@ object FileWriteSpec extends Specification {
       }
       emptyDiskFFS.rootDirectory.createFile("steak", data)
       val file = emptyDiskFFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.storedChecksum must_== file.fileHeaderBlock.computedChecksum
+      file.fileHeaderBlock.checksumIsValid must beTrue
       file.fileHeaderBlock.fileSize must_== 1024
 
       val resultData = file.dataBytes
@@ -105,7 +105,7 @@ object FileWriteSpec extends Specification {
                                     0xef.asInstanceOf[Byte])
       emptyDiskOFS.rootDirectory.createFile("steak", data)
       val file = emptyDiskOFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.storedChecksum must_== file.fileHeaderBlock.computedChecksum
+      file.fileHeaderBlock.checksumIsValid must beTrue
       file.fileHeaderBlock.fileSize must_== 4
 
       val resultData = file.dataBytes
@@ -127,7 +127,7 @@ object FileWriteSpec extends Specification {
       }
       emptyDiskOFS.rootDirectory.createFile("steak", data)
       val file = emptyDiskOFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.storedChecksum must_== file.fileHeaderBlock.computedChecksum
+      file.fileHeaderBlock.checksumIsValid must beTrue
       file.fileHeaderBlock.fileSize must_== 1024
 
       val resultData = file.dataBytes
@@ -140,7 +140,7 @@ object FileWriteSpec extends Specification {
         resultData(i + 3) & 0xff must_== 0xef
       }
       val rootblock = emptyDiskOFS.logicalVolume.rootBlock
-      rootblock.computedChecksum must_== rootblock.storedChecksum
+      rootblock.checksumIsValid must beTrue
     }
   }
   def formatted(date: Date) = {

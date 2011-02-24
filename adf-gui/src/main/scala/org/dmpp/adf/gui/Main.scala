@@ -240,6 +240,7 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
         val dataBytes = new Array[Byte](fileSize)
         in.read(dataBytes)
         currentDir.createFile(selectedFile.getName, dataBytes)
+        tableModel.fireTableDataChanged
       } finally {
         if (in != null) in.close
       }
