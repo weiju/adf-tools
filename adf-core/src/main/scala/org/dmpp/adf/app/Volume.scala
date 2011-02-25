@@ -238,6 +238,9 @@ trait ContainsHashtableBlock {
   private def allocateDataBlocks(fileHeaderNum: Int, dataSize: Int): List[DataBlock] = {
     var numRequiredDataBlocks = dataSize / logicalVolume.numBytesPerDataBlock
     if ((dataSize % logicalVolume.numBytesPerDataBlock) > 0) numRequiredDataBlocks += 1
+    printf("# allocated data blocks for data size: %d => %d\n",
+           dataSize, numRequiredDataBlocks)
+
     var dataBlocks: List[DataBlock] = Nil
     var remainSize = dataSize
     for (i <- 0 until numRequiredDataBlocks) {

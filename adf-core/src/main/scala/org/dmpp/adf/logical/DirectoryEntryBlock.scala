@@ -92,6 +92,7 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
    * Initializes the data occupied by this block.
    */
   def initialize(parentBlock: Int, fileName: String) {
+    printf("FileHeaderBlock.initialize(), block#: %d\n", blockNumber)
     for (i <- 0 until sector.sizeInBytes) sector(i) = 0
     primaryType = BlockType.PtShort
     secondaryType = BlockType.StFile
@@ -198,6 +199,7 @@ extends DataBlock with HasChecksum with SectorBasedChecksum {
   def maxDataBytes = sector.sizeInBytes - HeaderSize
 
   def initialize(headerBlock: Int, seqnum: Int, size: Int) {
+    //printf("OfsDataBlock.initialize(), block#: %d\n", blockNumber)
     for (i <- 0 until sector.sizeInBytes) sector(i) = 0
     sector.setInt32At(0, BlockType.PtData)
     sector.setInt32At(4, headerBlock)
@@ -228,6 +230,7 @@ extends DataBlock {
   val sector = physicalVolume.sector(blockNumber)
 
   def initialize {
+    //printf("FfsDataBlock.initialize(), block#: %d\n", blockNumber)
     for (i <- 0 until sector.sizeInBytes) sector(i) = 0
   }
   def maxDataBytes = sector.sizeInBytes

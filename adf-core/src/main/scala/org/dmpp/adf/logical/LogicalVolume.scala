@@ -66,7 +66,7 @@ object LogicalVolume {
  * @constructor creates a logical volume instance with a physical volume
  * @param physicalVolume the physical volume the logical volume is based on
  */
-class LogicalVolume(physicalVolume: PhysicalVolume) {
+class LogicalVolume(val physicalVolume: PhysicalVolume) {
   import LogicalVolume._
 
   /**
@@ -120,6 +120,13 @@ class LogicalVolume(physicalVolume: PhysicalVolume) {
    * @return the byte value at the specified position
    */
   def apply(byteNum: Int) = physicalVolume(byteNum)
+
+  /**
+   * Reads the 32 bit int at byteNum.
+   * @param byteNum the byte number
+   * @return int32 value
+   */
+  def int32At(byteNum: Int) = physicalVolume.int32At(byteNum)
 
   /** This volume's boot block. */
   val bootBlock = new BootBlock(physicalVolume)

@@ -58,7 +58,7 @@ object BitmapBlockSpec extends Specification {
     "initialize a bitmap block" in {
       val bitmapBlock = new BitmapBlock(physicalVolume, 881)
       bitmapBlock.initialize
-      bitmapBlock.storedChecksum must_!= 0
+      bitmapBlock.checksumIsValid must beTrue
       bitmapBlock.freeBlockIndexes.length must_== NumBitsPerBitmapBlock
       bitmapBlock.usedBlockIndexes must_== Nil
     }
@@ -94,6 +94,16 @@ object BitmapBlockSpec extends Specification {
       bitmapBlock.free(878)
       bitmapBlock.isFree(878) must beTrue
       bitmapBlock.storedChecksum must_!= oldChecksum
+    }
+    "has block 0 and 3 marked" in {
+      val bitmapBlock = new BitmapBlock(physicalVolume, 881)
+      bitmapBlock.initialize
+      val sector = physicalVolume.sector(881)
+      sector.setInt32At(4, 0x6fffffff)
+      bitmapBlock.isAllocated(31) must beTrue
+      bitmapBlock.isFree(31) must beFalse
+      bitmapBlock.isAllocated(28) must beTrue
+      bitmapBlock.isFree(28) must beFalse
     }
   }
 }

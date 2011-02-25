@@ -42,14 +42,14 @@ class BlockAlreadyAllocated extends Exception
  *
  * @constructor creates a bitmap block in the specified sector of a volume
  * @param physicalVolume the physical volume
- * @param sectorNumber ths sector number
+ * @param blockNumber ths block number
  */
 class BitmapBlock(val physicalVolume: PhysicalVolume,
-                  val sectorNumber: Int)
+                  val blockNumber: Int)
 extends LogicalBlock with HasChecksum with SectorBasedChecksum
 with BitHelper {
 
-  val sector = physicalVolume.sector(sectorNumber)
+  val sector = physicalVolume.sector(blockNumber)
   def sectorSize = physicalVolume.bytesPerSector
   def storedChecksum        = sector.int32At(0)
   def recomputeChecksum = sector.setInt32At(0, computedChecksum)
@@ -68,16 +68,22 @@ with BitHelper {
    */
   def allocate(relativeIndex: Int) {
     if (isAllocated(relativeIndex)) throw new BlockAlreadyAllocated
-    val bitClearMask = (~byteMaskForBit(bitNumForIndex(relativeIndex))) & 0xff
-    sector(4 + byteNumForIndex(relativeIndex)) &= bitClearMask
+    val bitClearMask = ~maskFor(bitNumForIndex(relativeIndex))
+    val offset = offsetForIndex(relativeIndex)
+    sector.setInt32At(offset, sector.int32At(offset) & bitClearMask)
     recomputeChecksum
   }
-  private def byteMaskForBit(bitnum: Int): Byte = {
-    ((1 << (7 - bitnum)) & 0xff).asInstanceOf[Byte]
+  private def wordNumForIndex(relativeIndex: Int) = relativeIndex / 32
+  private def offsetForIndex(relativeIndex: Int) = {
+    4 + wordNumForIndex(relativeIndex) * 4
   }
+  private def bitNumForIndex(relativeIndex: Int) = relativeIndex % 32
+  private def maskFor(bitnum: Int): Int = (1 << bitnum)
+
   def free(relativeIndex: Int) {
-    val mask = byteMaskForBit(bitNumForIndex(relativeIndex))
-    sector(4 + byteNumForIndex(relativeIndex)) |= mask
+    val bitSetMask = maskFor(bitNumForIndex(relativeIndex))
+    val offset = offsetForIndex(relativeIndex)
+    sector.setInt32At(offset, sector.int32At(offset) | bitSetMask)
     recomputeChecksum
   }
 
@@ -87,8 +93,9 @@ with BitHelper {
    * @return true if allocated, false otherwise
    */
   def isAllocated(relativeIndex: Int): Boolean = {
-    val mask = byteMaskForBit(bitNumForIndex(relativeIndex))
-    (sector(4 + byteNumForIndex(relativeIndex)) & mask) == 0
+    val bitSetMask = maskFor(bitNumForIndex(relativeIndex))
+    val offset = offsetForIndex(relativeIndex)
+    (sector.int32At(offset) & bitSetMask) == 0
   }
   /**
    * Determine whether the block at relativeIndex is free.
@@ -96,8 +103,6 @@ with BitHelper {
    * @return true if free, false otherwise
    */
   def isFree(relativeIndex: Int): Boolean = !isAllocated(relativeIndex)
-  private def byteNumForIndex(relativeIndex: Int) = relativeIndex / 8
-  private def bitNumForIndex(relativeIndex: Int) = relativeIndex % 8
 
   /**
    * All free indexes in this bitmap block, starting at index 0. The indexes
@@ -123,5 +128,10 @@ with BitHelper {
     }
     result
   }
-}
 
+  override def toString = {
+    "Bitmap Block[%d] - # free: %d/# used: %d".format(blockNumber,
+                                                      freeBlockIndexes.length,
+                                                      usedBlockIndexes.length)
+  }
+}

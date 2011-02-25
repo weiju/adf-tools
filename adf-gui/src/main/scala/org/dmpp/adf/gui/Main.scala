@@ -35,6 +35,7 @@ import java.awt.event._
 import java.awt.{BorderLayout, Dimension, FlowLayout}
 
 import org.dmpp.adf.app._
+import org.dmpp.adf.logical._
 
 /**
  * I originally wanted to use Scala Swing here, but there is no
@@ -91,12 +92,17 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
         if (!e.getValueIsAdjusting) {
           val selectedRow = table.getSelectedRow
           if (selectedRow >= 0 && selectedRow < tableModel.getRowCount) {
-            exportItem.setEnabled(currentDir.list(selectedRow).isFile)
+            handleTableSelection(currentDir.list(selectedRow))
           }
         }
       }
     })
   }
+
+  private def handleTableSelection(currentSelection: DosFile) {
+    exportItem.setEnabled(currentSelection.isFile)
+  }
+
   private def makeLeftPane {
     val scrollPane = new JScrollPane(tree)
     splitPane.setLeftComponent(scrollPane)
@@ -180,6 +186,10 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     setCurrentDir(null)
 
     saveAsItem.setEnabled(currentVolume != null)
+    updateStatusbar
+  }
+
+  private def updateStatusbar {
     if (currentVolume != null) {
       statusMessageLabel.setText(("%d of %d blocks used, %d bytes free, " +
                                   "%d bytes used").format(currentVolume.numUsedBlocks,
@@ -188,6 +198,7 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
                                                          currentVolume.numBytesUsed))
     }
   }
+
   private def setCurrentDir(dir: Directory) {
     currentDir = dir
     tableModel.currentDir = dir
@@ -232,7 +243,6 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       val selectedFile = fileChooser.getSelectedFile
       val fileSize = selectedFile.length.asInstanceOf[Int]
-      printf("TODO: Add '%s' of size: %d\n", selectedFile.getName, fileSize)
       // TODO: normalize filename to 30 characters/Amiga encoding
       var in: FileInputStream = null
       try {
@@ -241,6 +251,7 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
         in.read(dataBytes)
         currentDir.createFile(selectedFile.getName, dataBytes)
         tableModel.fireTableDataChanged
+        updateStatusbar
       } finally {
         if (in != null) in.close
       }

@@ -52,7 +52,7 @@ trait BitHelper {
 
   /**
    * Returns a list of bit numbers that are set in a given bit mask.
-   * Note that the MSB in this case is number 0 and the LSB
+   * Note that the LSB in this case is number 0 and the MSB
    * is 31.
    *
    * @param bitmask the bit mask to check
@@ -64,7 +64,7 @@ trait BitHelper {
 
   /**
    * Returns a list of bit numbers that are set in a given bit mask.
-   * Note that the MSB in this case is number 0 and the LSB
+   * Note that the LSB in this case is number 0 and the MSB
    * is 31.
    *
    * @param bitmask the bit mask to check
@@ -78,10 +78,10 @@ trait BitHelper {
     var current = bitmask
     var result: List[Int] = Nil
     for (i <- 0 until 32) {
-      if (pred(current)) result ::= (31 - i)
+      if (pred(current)) result ::= i
       current >>>= 1
     }
-    result
+    result.reverse
   }
 
   /**

@@ -68,6 +68,13 @@ with DirectoryBlock {
   def highSeq         = sector.int32At(8)
   def firstData       = sector.int32At(16)
 
+  override def toString = {
+    val bitmapBlock0 = bitmapBlockAt(0)
+    ("RootBlock[%d]\n# bitmap blocks: %d\n%s").format(blockNumber,
+                                                      bitmapBlocks.length,
+                                                      bitmapBlock0)
+  }
+
   def bitmapIsValid: Boolean = {
     (sector.int32At(sector.sizeInBytes - 200) == 0xffffffff)
   }

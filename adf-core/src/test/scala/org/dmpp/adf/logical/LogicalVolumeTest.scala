@@ -136,7 +136,7 @@ object LogicalVolumeSpec extends Specification {
     // bitmap blocks
     "get bitmap blocks" in {
       logicalVolume.rootBlock.bitmapBlocks.length must_== 1
-      logicalVolume.rootBlock.bitmapBlocks.head.sectorNumber must_== 1015
+      logicalVolume.rootBlock.bitmapBlocks.head.blockNumber must_== 1015
     }
     "bitmap block has a checksum" in {
       logicalVolume.rootBlock.bitmapBlocks.head.storedChecksum must_== 0xb462193c
