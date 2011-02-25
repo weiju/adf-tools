@@ -11,6 +11,27 @@ At the core is a file system library written in Scala.
 I started to write this because I wanted to use my Mac to prepare
 a couple of ADF files for testing on UAE.
 
+Usage
+-----
+You can simply download the latest version of the adf-browser jar
+from github and start it with
+
+java -jar adf-browser-<date>.jar
+
+Building
+--------
+The project can be either built with maven or with sbt.
+The library is in the adf-core module, the browser application
+is in the adf-gui module.
+
+Status
+------
+- supports Double Density disks
+- supports OFS and FFS
+- can create disks
+- can add files to a disk
+- can copy files from a disk
+
 Background
 ----------
 The ADF C library does not compile correctly on my machine and I needed

@@ -106,6 +106,48 @@
           </args>
         </configuration>
       </plugin>
+      <!-- Assembly: jar-with-dependencies -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.2</version>
+        <configuration>
+          <descriptors>
+            <descriptor>assembly.xml</descriptor>
+          </descriptors>
+          <archive>
+            <manifest>
+              <mainClass>org.dmpp.adf.gui.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals><goal>single</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- ProGuard -->
+      <plugin>
+        <groupId>com.pyx4me</groupId>
+        <artifactId>proguard-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>proguard</goal></goals>
+          </execution>	  
+        </executions>
+        <configuration>
+          <includeDependency>false</includeDependency>
+          <injar>${project.build.finalName}-jar-with-dependencies.jar</injar>
+          <outjar>${project.build.finalName}-small.jar</outjar>
+          <proguardInclude>${basedir}/proguard.conf</proguardInclude>
+          <maxMemory>1024m</maxMemory>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>
