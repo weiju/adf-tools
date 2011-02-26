@@ -61,7 +61,7 @@ object UserVolumeSpec extends Specification {
     }
     "read workbench root directory" in {
       workbenchDisk.name must_== "Workbench1.3"
-      workbenchDisk.toString must_== "Workbench1.3[OFS]"
+      workbenchDisk.toString must_== "Workbench1.3"
       formatted(workbenchDisk.creationTime) must_== "1989-08-16 13:57:36.100"
       val rootdir = workbenchDisk.rootDirectory
       rootdir.isDirectory must beTrue

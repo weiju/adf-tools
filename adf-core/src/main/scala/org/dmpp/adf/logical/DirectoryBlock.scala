@@ -74,12 +74,12 @@ trait DirectoryBlock { self : HeaderBlock =>
   }
   private def isNonEmptyHashEntry(entry: Int) = entry > 0
   private def makeDirEntryBlock(blockNumber: Int) = {
-    val header = new DirectoryEntryBlock(physicalVolume, blockNumber)
+    val header = new DirectoryEntryBlock(logicalVolume, blockNumber)
     header.secondaryType match {
       case BlockType.StUserDir =>
-        new UserDirectoryBlock(physicalVolume, blockNumber)
+        new UserDirectoryBlock(logicalVolume, blockNumber)
       case BlockType.StFile    =>
-        new FileHeaderBlock(physicalVolume, blockNumber)
+        new FileHeaderBlock(logicalVolume, blockNumber)
       case _ =>
         throw new UnsupportedOperationException("unsupported secondary header type")
     }
@@ -121,7 +121,7 @@ trait DirectoryBlock { self : HeaderBlock =>
                                                 blocknum: Int): Int = {
     if (blocknum == 0) 0
     else {
-      val current = new DirectoryEntryBlock(physicalVolume, blocknum)
+      val current = new DirectoryEntryBlock(logicalVolume, blocknum)
       if (current.name == name) blocknum
       else {
         findBlockNumberForNameRecursively(name, current.nextInHashBucket)

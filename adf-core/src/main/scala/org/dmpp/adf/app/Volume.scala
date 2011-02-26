@@ -146,8 +146,14 @@ class UserVolume(val logicalVolume: LogicalVolume) {
   def numBytesUsed      = numUsedBlocks * logicalVolume.blockSizeInBytes
 
   /**
+   * Returns the file system type.
+   * @return the file system type
+   */
+  def filesystemType = logicalVolume.filesystemType
+
+  /**
    * Returns this volume's string representation.
    * @return string representation
    */
-  override def toString = name + "[%s]".format(logicalVolume.filesystemType)
+  override def toString = name
 }

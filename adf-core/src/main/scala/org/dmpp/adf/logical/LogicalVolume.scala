@@ -132,7 +132,16 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
   val bootBlock = new BootBlock(physicalVolume)
 
   /** This volumes's root block. */
-  val rootBlock = new RootBlock(physicalVolume, RootSectorNumber)
+  val rootBlock = new RootBlock(this, RootSectorNumber)
+
+  /**
+   * Retrieves the UserDirectory block with the specified block number.
+   * @param blockNumber the block number
+   * @return the UserDirectoryBlock
+   */
+  def userDirectoryBlockAt(blockNumber: Int): UserDirectoryBlock = {
+    new UserDirectoryBlock(this, blockNumber)
+  }
 
   /**
    * Returns this volume's name.
@@ -183,13 +192,13 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
    * @return a new, initialized FileHeaderBlock
    */
   def allocateFileHeaderBlock(parentBlock: Int, name: String): FileHeaderBlock = {
-    val fileheader = new FileHeaderBlock(physicalVolume, allocate)
+    val fileheader = new FileHeaderBlock(this, allocate)
     fileheader.initialize(parentBlock, name)
     fileheader
   }
 
   def allocateUserDirectoryBlock(parentBlock: Int, name: String): UserDirectoryBlock = {
-    val dirblock = new UserDirectoryBlock(physicalVolume, allocate)
+    val dirblock = new UserDirectoryBlock(this, allocate)
     dirblock.initialize(parentBlock, name)
     dirblock
   }
@@ -201,11 +210,11 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
    */
   def allocateDataBlock(headerBlock: Int, seqnum: Int, dataSize: Int): DataBlock = {
     val datablock = if (filesystemType == "OFS") {
-      val ofsblock = new OfsDataBlock(physicalVolume, allocate)
+      val ofsblock = new OfsDataBlock(this, allocate)
       ofsblock.initialize(headerBlock, seqnum, dataSize)
       ofsblock
     } else if (filesystemType == "FFS") {
-      val ffsblock = new FfsDataBlock(physicalVolume, allocate)
+      val ffsblock = new FfsDataBlock(this, allocate)
       ffsblock.initialize
       ffsblock
     } else {
@@ -244,8 +253,8 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
    * @return the data block
    */
   def dataBlock(dataBlockNumber: Int) = {
-    if (filesystemType == "OFS") new OfsDataBlock(physicalVolume, dataBlockNumber)
-    else if (filesystemType == "FFS") new FfsDataBlock(physicalVolume, dataBlockNumber)
+    if (filesystemType == "OFS") new OfsDataBlock(this, dataBlockNumber)
+    else if (filesystemType == "FFS") new FfsDataBlock(this, dataBlockNumber)
     else throw new UnsupportedOperationException("unknown file system type")
   }
 

@@ -37,7 +37,7 @@ import org.dmpp.adf.logical._
  * @param logicalVolume a LogicalVolume
  * @param fileHeaderBlock the file header block
  */
-class UserFile(logicalVolume: LogicalVolume,
+class UserFile(val logicalVolume: LogicalVolume,
                val fileHeaderBlock: FileHeaderBlock)
 extends AbstractDosFile(fileHeaderBlock) {
 

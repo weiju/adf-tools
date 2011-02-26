@@ -42,11 +42,11 @@ object RootBlock {
 /**
  * This class represents an Amiga volume's root block.
  * @constructor creates a root block instance for the specified sector
- * @param physicalVolume the physical volumex
+ * @param logicalVolume the logical volume
  * @param blockNumber the block number
  */
-class RootBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
-extends HeaderBlock(physicalVolume, blockNumber)
+class RootBlock(logicalVolume: LogicalVolume, blockNumber: Int)
+extends HeaderBlock(logicalVolume, blockNumber)
 with DirectoryBlock {
 
   import RootBlock._

@@ -42,12 +42,13 @@ import org.dmpp.adf.logical._
  * official tree component (yet), which is necessary for a file viewer.
  * I just go with plain old Java Swing here.
  */
-class AdfToolsFrame extends JFrame("ADF Tools") {
+class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
 
   var currentVolume: UserVolume = null
   var currentDir: Directory = null
   var saveAsItem: JMenuItem = null
   var addFileItem: JMenuItem = null
+  var addFolderItem: JMenuItem = null
   var exportItem: JMenuItem = null
   var statusMessageLabel: JLabel = null
 
@@ -123,6 +124,10 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
                 new ActionListener {
                   def actionPerformed(e: ActionEvent) = newFfsVolume
                 })
+    addFolderItem = addMenuItem(fileMenu, "New Folder",
+                                new ActionListener {
+                                  def actionPerformed(e: ActionEvent) = newFolder
+                                })
     addMenuItem(fileMenu, "Open ADF file...",
                 new ActionListener {
                   def actionPerformed(e: ActionEvent) = openAdfFile
@@ -148,6 +153,8 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     saveAsItem.setEnabled(false)
     addFileItem.setEnabled(false)
     exportItem.setEnabled(false)
+    addFolderItem.setEnabled(false)
+    
     setJMenuBar(menubar)
   }
 
@@ -192,11 +199,12 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
 
   private def updateStatusbar {
     if (currentVolume != null) {
-      statusMessageLabel.setText(("%d of %d blocks used, %d bytes free, " +
-                                  "%d bytes used").format(currentVolume.numUsedBlocks,
-                                                         currentVolume.numBlocksTotal,
-                                                         currentVolume.numBytesAvailable,
-                                                         currentVolume.numBytesUsed))
+      statusMessageLabel.setText(("%s, %d of %d blocks used, %d bytes free, " +
+                                  "%d bytes used").format(currentVolume.filesystemType,
+                                                          currentVolume.numUsedBlocks,
+                                                          currentVolume.numBlocksTotal,
+                                                          currentVolume.numBytesAvailable,
+                                                          currentVolume.numBytesUsed))
     }
   }
 
@@ -206,6 +214,7 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
 
     addFileItem.setEnabled(currentDir != null)
     exportItem.setEnabled(false)
+    addFolderItem.setEnabled(currentDir != null)
   }
 
   private def saveVolumeAs {
@@ -263,12 +272,20 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     genericSaveAs("Export selected file...",
                   out => fileToExport.writeToOutputStream(out))
   }
+
+  private def newFolder {
+    currentDir.createDirectory(makeUniqueFolderName)
+    tableModel.fireTableDataChanged
+  }
+  private def makeUniqueFolderName = {
+    "New Directory"
+  }
 }
 
 object Main {
   def main(args: Array[String]) {
     System.setProperty("apple.laf.useScreenMenuBar", "true")
-    System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ADF Tools")
+    System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Opus@Scala")
     val frame = new AdfToolsFrame
     frame.setVisible(true)
   }

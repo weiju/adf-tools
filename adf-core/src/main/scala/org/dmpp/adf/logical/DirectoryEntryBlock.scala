@@ -34,12 +34,12 @@ import org.dmpp.adf.physical._
  * A block that we can quickly wrap around a sector in order to determine
  * its type.
  * @constructor creates an DirectoryEntryBlock instance
- * @param physicalVolume a [[org.dmpp.adf.physical.PhysicalVolume]] instance
+ * @param logicalVolume a [[org.dmpp.adf.logical.LogicalVolume]] instance
  * @param blockNumber the block number
  */
-class DirectoryEntryBlock(physicalVolume: PhysicalVolume,
+class DirectoryEntryBlock(logicalVolume: LogicalVolume,
                           blockNumber: Int)
-extends HeaderBlock(physicalVolume, blockNumber) with HasComment
+extends HeaderBlock(logicalVolume, blockNumber) with HasComment
 with HasAccessRights {
   def isDirectory  = secondaryType == BlockType.StUserDir
   def isFile       = secondaryType == BlockType.StFile
@@ -61,8 +61,8 @@ with HasAccessRights {
 /**
  * A class to represent a user directory block.
  */
-class UserDirectoryBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
-extends DirectoryEntryBlock(physicalVolume, blockNumber)
+class UserDirectoryBlock(logicalVolume: LogicalVolume, blockNumber: Int)
+extends DirectoryEntryBlock(logicalVolume, blockNumber)
 with DirectoryBlock {
   override def initialize(parentBlock: Int, aName: String) {
     super.initialize(parentBlock, aName)
@@ -81,8 +81,8 @@ object FileHeaderBlock {
 /**
  * A class to represent a file header block.
  */
-class FileHeaderBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
-extends DirectoryEntryBlock(physicalVolume, blockNumber) {
+class FileHeaderBlock(logicalVolume: LogicalVolume, blockNumber: Int)
+extends DirectoryEntryBlock(logicalVolume, blockNumber) {
   import FileHeaderBlock._
   def OffsetDataBlockIndex0 = sector.sizeInBytes - 204
 
@@ -171,13 +171,14 @@ object OfsDataBlock {
  * Currently, that information is ignored and an OFS data block
  * only provides access to data bytes.
  * @constructor create an OfsDataBlock
- * @param physicalVolume a PhysicalVolume
+ * @param logicalVolume a LogicalVolume
  * @param blockNumber the block number of this block
  */
-class OfsDataBlock(val physicalVolume: PhysicalVolume, val blockNumber: Int)
+class OfsDataBlock(val logicalVolume: LogicalVolume, val blockNumber: Int)
 extends DataBlock with HasChecksum with SectorBasedChecksum {
   import OfsDataBlock._
 
+  def physicalVolume = logicalVolume.physicalVolume
   val sector = physicalVolume.sector(blockNumber)
   def primaryType   = sector.int32At(0)
   def headerKey     = sector.int32At(4)
@@ -217,11 +218,12 @@ extends DataBlock with HasChecksum with SectorBasedChecksum {
 /**
  * FFS data blocks are plain arrays of byte values.
  * @constructor creates an FFS data block
- * @param physicalVolume a PhysicalVolume
+ * @param logicalVolume a LogicalVolume
  * @param blockNumber this block's block number
  */
-class FfsDataBlock(val physicalVolume: PhysicalVolume, val blockNumber: Int)
+class FfsDataBlock(val logicalVolume: LogicalVolume, val blockNumber: Int)
 extends DataBlock {
+  def physicalVolume = logicalVolume.physicalVolume
   val sector = physicalVolume.sector(blockNumber)
 
   def initialize {

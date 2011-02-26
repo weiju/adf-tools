@@ -34,6 +34,7 @@ import org.dmpp.adf.logical._
  * General interface of a file.
  */
 trait DosFile {
+  def logicalVolume: LogicalVolume
   /**
    * Determine whether this file is a directory.
    * @return true if directory, false otherwise
@@ -71,6 +72,12 @@ trait DosFile {
    * @return the last modification time
    */
   def lastModificationTime: Date
+
+  /**
+   * Returns this file's parent directory
+   * @return parent directory
+   */
+  def parentDirectory: Directory
 }
 
 /**
@@ -90,5 +97,11 @@ abstract class AbstractDosFile(val dirEntryBlock: DirectoryEntryBlock) extends D
   def lastModificationTime       = dirEntryBlock.lastModificationTime
   def updateLastModificationTime = dirEntryBlock.updateLastModificationTime
   override def toString          = name
+  def parentDirectory = {
+    if (dirEntryBlock.parent == logicalVolume.rootBlock.blockNumber)
+      new RootDirectory(logicalVolume)
+    else
+      new UserDirectory(logicalVolume,
+                        logicalVolume.userDirectoryBlockAt(dirEntryBlock.parent))
+  }
 }
-

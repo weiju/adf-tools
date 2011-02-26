@@ -80,12 +80,19 @@ trait ContainsHashtableBlock {
 
   def list: List[DosFile] = {
     hashtableEntries.map(e => e match {
-      case file:FileHeaderBlock   => new UserFile(logicalVolume, file)
-      case dir:UserDirectoryBlock => new UserDirectory(logicalVolume, dir)
-      case unknown:Any =>
-        throw new IllegalArgumentException("unknown block type: " + unknown.getClass)
+      case fileblock: FileHeaderBlock   => getUserFile(fileblock)
+      case dirblock : UserDirectoryBlock => getUserDirectory(dirblock)
+      case _  =>
+        throw new IllegalArgumentException("unknown block type")
     })
   }
+  private def getUserFile(block: FileHeaderBlock) = {
+    new UserFile(logicalVolume, block)
+  }
+  private def getUserDirectory(block: UserDirectoryBlock) = {
+    new UserDirectory(logicalVolume, block)
+  }
+
   def listDirectories: List[DosFile] = {
     list.filter(file => file.isDirectory)
   }
@@ -99,9 +106,9 @@ trait ContainsHashtableBlock {
 
   private def createFileOrDirectory(directoryEntryBlock: DirectoryEntryBlock) = {
     directoryEntryBlock match {
-      case dir:UserDirectoryBlock => new UserDirectory(logicalVolume, dir)
-      case file:FileHeaderBlock => new UserFile(logicalVolume, file)
-      case _ => throw new IllegalArgumentException("unknowk block type")
+      case dirblock : UserDirectoryBlock => getUserDirectory(dirblock)
+      case fileblock: FileHeaderBlock => getUserFile(fileblock)
+      case _ => throw new IllegalArgumentException("unknown block type")
     }
   }
   def createFile(filename: String, dataBytes: Array[Byte]) = {
@@ -205,6 +212,9 @@ extends Directory with ContainsHashtableBlock {
   def comment                 = "(no comment)"
   def hashtableEntries        = rootBlock.hashtableEntries
   def lastModificationTime    = rootBlock.lastModificationTime
+  def parentDirectory = {
+    throw new UnsupportedOperationException("root directory has no parent")
+  }
 }
 
 /**
