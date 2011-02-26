@@ -91,6 +91,7 @@ abstract class AbstractDosFile(val dirEntryBlock: DirectoryEntryBlock) extends D
     dirEntryBlock.name = newName
     // note: currently a rename does not change the containing
     // directory's time or the disk time
+    // also, there is no check for renaming to an already existing name
     dirEntryBlock.updateLastModificationTime
   }
   def comment                    = dirEntryBlock.comment

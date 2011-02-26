@@ -1,5 +1,5 @@
 /**
- * Created on February 14, 2011
+ * Created on February 26, 2011
  * Copyright (c) 2011, Wei-ju Wu
  * All rights reserved.
  *
@@ -28,48 +28,15 @@
 package org.dmpp.adf.logical
 
 import java.util.Date
-
-import org.dmpp.adf.physical._
 import org.dmpp.adf.util._
-
-/**
- * All known primary and secondary block types in AmigaDOS.
- */
-object BlockType {
-  val PtShort    = 2
-  val PtData     = 8
-  val PtList     = 16
-  val PtDirCache = 33
-
-  val StRoot     =  1
-  val StUserDir  =  2
-  val StSoftLink =  3
-  val StLinkDir  =  4
-  val StFile     = -3
-  val StLinkFile = -4
-}
-
-/**
- * Root of the block hierarchy.
- */
-trait LogicalBlock {
-  def physicalVolume: PhysicalVolume
-
-  /**
-   * Returns this block's underlying sector.
-   * @return the underlying sector
-   */
-  def sector: Sector
-}
 
 /**
  * Symbolic constants for header blocks.
  */
 object HeaderBlock {
-  val NameMaxChars = 30
+  val NameMaxChars      = 30
   val OffsetPrimaryType = 0
   val OffsetHeaderKey   = 4
-
 }
 
 /**
