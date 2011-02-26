@@ -53,6 +53,12 @@ trait DosFile {
   def name: String
 
   /**
+   * Renames a file.
+   * @param newName new file name
+   */
+  def name_=(newName: String)
+
+  /**
    * Returns the comment.
    * @return comment
    */
@@ -74,6 +80,12 @@ trait DosFile {
  */
 abstract class AbstractDosFile(val dirEntryBlock: DirectoryEntryBlock) extends DosFile {
   def name                       = dirEntryBlock.name
+  def name_=(newName: String) {
+    dirEntryBlock.name = newName
+    // note: currently a rename does not change the containing
+    // directory's time or the disk time
+    dirEntryBlock.updateLastModificationTime
+  }
   def comment                    = dirEntryBlock.comment
   def lastModificationTime       = dirEntryBlock.lastModificationTime
   def updateLastModificationTime = dirEntryBlock.updateLastModificationTime

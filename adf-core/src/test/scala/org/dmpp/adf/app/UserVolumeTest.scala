@@ -81,16 +81,30 @@ object UserVolumeSpec extends Specification {
       val utilDir = workbenchDisk.rootDirectory.find("Utilities").get
       utilDir.isDirectory must beTrue
     }
-    "select with '' should list root" in {
-      workbenchDisk.select("").length must_== 24
-    }
-    "select with 'c' should list c directory" in {
-      workbenchDisk.select("c").length must_== 63
-    }
 
+    "rename a file" in {
+      val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get
+      diskInfo.name = "NewDisk.info"
+      diskInfo.name must_== "NewDisk.info"
+      mustBeRecent(diskInfo.lastModificationTime)
+    }
+    "rename a directory" in {
+      val dir = workbenchDisk.rootDirectory.find("Utilities").get
+      dir.name = "Utils"
+      dir.name must_== "Utils"
+      mustBeRecent(dir.lastModificationTime)
+    }
+    "rename a disk" in {
+      workbenchDisk.name = "MyBench"
+      workbenchDisk.name must_== "MyBench"
+      mustBeRecent(workbenchDisk.lastModificationTime)
+    }
   }
   def formatted(date: Date) = {
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)
+  }
+  def mustBeRecent(date: Date) = {
+    (System.currentTimeMillis - date.getTime) must beLessThan(1000l)
   }
 }

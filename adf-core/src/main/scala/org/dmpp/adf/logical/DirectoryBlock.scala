@@ -143,4 +143,5 @@ trait DirectoryBlock { self : HeaderBlock =>
    * just get it from the HeaderBlock
    */
   def recomputeChecksum
+  def updateLastModificationTime
 }

@@ -59,11 +59,15 @@ object FileWriteSpec extends Specification {
 
       emptyDiskFFS.logicalVolume.rootBlock.hashtableSize must_== 0x48
       emptyDiskFFS.logicalVolume.rootBlock.bitmapIsValid must beTrue
+      mustBeRecent(emptyDiskFFS.lastModificationTime)
+      val rootdir = emptyDiskFFS.rootDirectory
+      mustBeRecent(rootdir.lastModificationTime)
 
-      val file = emptyDiskFFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
+      val file = rootdir.find("steak").get.asInstanceOf[UserFile]
       file.fileHeaderBlock.checksumIsValid must beTrue
       file.fileHeaderBlock.fileSize must_== 4
       file.fileHeaderBlock.parent must_== 880
+      mustBeRecent(file.lastModificationTime)
 
       val resultData = file.dataBytes
       resultData.length must_== 4
@@ -116,35 +120,13 @@ object FileWriteSpec extends Specification {
       resultData(2) & 0xff must_== 0xbe
       resultData(3) & 0xff must_== 0xef
     }
-
-    "create an OFS file that spans three blocks" in {
-      val data = new Array[Byte](1024)
-      for (i <- 0 to 1020 by 4) {
-        data(i)     = 0xde.asInstanceOf[Byte]
-        data(i + 1) = 0xad.asInstanceOf[Byte]
-        data(i + 2) = 0xbe.asInstanceOf[Byte]
-        data(i + 3) = 0xef.asInstanceOf[Byte]
-      }
-      emptyDiskOFS.rootDirectory.createFile("steak", data)
-      val file = emptyDiskOFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.checksumIsValid must beTrue
-      file.fileHeaderBlock.fileSize must_== 1024
-
-      val resultData = file.dataBytes
-
-      resultData.length must_== 1024
-      for (i <- 0 to 1020 by 4) {
-        resultData(i + 0) & 0xff must_== 0xde
-        resultData(i + 1) & 0xff must_== 0xad
-        resultData(i + 2) & 0xff must_== 0xbe
-        resultData(i + 3) & 0xff must_== 0xef
-      }
-      val rootblock = emptyDiskOFS.logicalVolume.rootBlock
-      rootblock.checksumIsValid must beTrue
-    }
   }
   def formatted(date: Date) = {
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)
+  }
+
+  def mustBeRecent(date: Date) = {
+    (System.currentTimeMillis - date.getTime) must beLessThan(1000l)
   }
 }

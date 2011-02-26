@@ -81,30 +81,20 @@ class UserVolume(val logicalVolume: LogicalVolume) {
   def name = logicalVolume.rootBlock.name
 
   /**
+   * Renames this volume.
+   * @param newName new name
+   */
+  def name_=(newName: String) {
+    logicalVolume.rootBlock.name = newName
+    logicalVolume.rootBlock.updateDiskLastModificationTime
+  }
+
+  /**
    * Returns the root directory.
    * @return the root directory.
    */
   def rootDirectory: Directory = {
     new RootDirectory(logicalVolume)
-  }
-
-  /**
-   * Given a path expression, select a list of [[org.dmpp.adf.app.DosFile]]
-   * instances.
-   * @param path a path string
-   * @return a list of DosFile instances matching the path expression
-   */
-  def select(path: String): List[DosFile] = {
-    if (path == "") rootDirectory.list
-    else {
-      val comps = path.split("/").toList
-      val matchFiles = rootDirectory.list.filter(entry => entry.name == comps(0))
-      if (matchFiles == 0) Nil
-      else {
-        val dir = matchFiles(0).asInstanceOf[Directory]
-        dir.list
-      }
-    }
   }
 
   /**
@@ -137,9 +127,22 @@ class UserVolume(val logicalVolume: LogicalVolume) {
    */
   def numUsedBlocks = logicalVolume.numUsedBlocks
 
+  /**
+   * Returns the total number of blocks on this volume.
+   * @return totalo number of blocks
+   */
   def numBlocksTotal = logicalVolume.numBlocksTotal
 
+  /**
+   * Available number of bytes.
+   * @return available number of bytes
+   */
   def numBytesAvailable = numFreeBlocks * logicalVolume.blockSizeInBytes
+
+  /**
+   * Number of bytes currently used.
+   * @return number of bytes currently used
+   */
   def numBytesUsed      = numUsedBlocks * logicalVolume.blockSizeInBytes
 
   /**

@@ -104,6 +104,8 @@ trait ContainsHashtableBlock {
     writeDataToBlocks(fileHeader, dataBytes)
     fileHeader.recomputeChecksum
     thisDirectoryBlock.recomputeChecksum
+    thisDirectoryBlock.updateLastModificationTime
+    logicalVolume.rootBlock.updateDiskLastModificationTime
     new UserFile(logicalVolume, fileHeader)
   }
 
@@ -178,13 +180,14 @@ trait ContainsHashtableBlock {
  */
 class RootDirectory(val logicalVolume: LogicalVolume)
 extends Directory with ContainsHashtableBlock {
-  private def rootBlock    = logicalVolume.rootBlock
-  def thisDirectoryBlock   = rootBlock
-  def blockNumber          = rootBlock.blockNumber
-  def name                 = rootBlock.name
-  def comment              = "(no comment)"
-  def hashtableEntries     = rootBlock.hashtableEntries
-  def lastModificationTime = rootBlock.lastModificationTime
+  private def rootBlock       = logicalVolume.rootBlock
+  def thisDirectoryBlock      = rootBlock
+  def blockNumber             = rootBlock.blockNumber
+  def name                    = rootBlock.name
+  def name_=(newName: String) = rootBlock.name = newName
+  def comment                 = "(no comment)"
+  def hashtableEntries        = rootBlock.hashtableEntries
+  def lastModificationTime    = rootBlock.lastModificationTime
 }
 
 /**
