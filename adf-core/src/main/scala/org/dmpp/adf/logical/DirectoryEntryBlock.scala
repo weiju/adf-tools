@@ -129,20 +129,6 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
     }
     result.reverse
   }
-
-  /**
-   * Last modification time. In a file header block, this replaces lastAccessTime.
-   * @return last modification time
-   */
-  def lastModificationTime: Date = super.lastAccessTime
-
-  /**
-   * Throws an UnsupportedOperationException in a file header block.
-   * @return nothing
-   */
-  override def lastAccessTime: Date = {
-    throw new UnsupportedOperationException("lastAccessTime not available in root block")
-  }
 }
 
 /**

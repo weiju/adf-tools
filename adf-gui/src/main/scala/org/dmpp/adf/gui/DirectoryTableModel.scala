@@ -45,7 +45,7 @@ class DirectoryTableModel extends AbstractTableModel {
     fireTableDataChanged
   }
   
-  val Headers = Array("Name", "Size", "Last Modified")
+  val Headers = Array("Name", "Size", "Last Modified", "Kind")
   def getRowCount = {
     if (_currentDir == null) 0 else _currentDir.list.length
   }
@@ -66,9 +66,10 @@ class DirectoryTableModel extends AbstractTableModel {
       case 1 =>
         if (file.isDirectory) "-" else file.asInstanceOf[UserFile].size.toString
       case 2 =>
-        val date  = if (file.isDirectory) file.lastAccessTime
-        else file.lastModificationTime
+        val date  = if (file.isDirectory) file.lastModificationTime
+        else file.lastModificationTime      
         DateFormat.format(date)
+      case 3 => if (file.isDirectory) "Folder" else "File"
       case _ => "???"
     }
   }

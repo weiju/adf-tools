@@ -148,7 +148,7 @@ trait ContainsHashtableBlock {
     thisDirectoryBlock.addToHashtable(fileHeader)
     fileHeader.blockCount = numRequiredDataBlocks
     fileHeader.fileSize = fileSize
-    fileHeader.updateLastAccessTime
+    fileHeader.updateLastModificationTime
     fileHeader
   }
 
@@ -185,7 +185,6 @@ extends Directory with ContainsHashtableBlock {
   def comment              = "(no comment)"
   def hashtableEntries     = rootBlock.hashtableEntries
   def lastModificationTime = rootBlock.lastModificationTime
-  def lastAccessTime       = rootBlock.lastAccessTime
 }
 
 /**

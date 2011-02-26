@@ -139,18 +139,4 @@ with DirectoryBlock {
                  sector.int32At(sector.sizeInBytes - 24),
                  sector.int32At(sector.sizeInBytes - 20)).toDate
   }
-
-  /**
-   * Last modification time. In the root block, this replaces lastAccessTime.
-   * @return last modification time
-   */
-  def lastModificationTime: Date = super.lastAccessTime
-
-  /**
-   * Throws an UnsupportedOperationException in the root block.
-   * @return nothing
-   */
-  override def lastAccessTime: Date = {
-    throw new UnsupportedOperationException("lastAccessTime not available in root block")
-  }
 }

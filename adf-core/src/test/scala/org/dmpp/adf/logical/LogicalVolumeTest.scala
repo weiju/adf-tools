@@ -88,9 +88,6 @@ object LogicalVolumeSpec extends Specification {
       formatted(logicalVolume.rootBlock.creationTime) must_== "1989-08-16 13:57:36.100"
       logicalVolume.rootBlock.secondaryType must_== BlockType.StRoot
     }
-    "lastAccessTime not supported" in {
-      logicalVolume.rootBlock.lastAccessTime must throwA[UnsupportedOperationException]
-    }
     "update disk modification time" in {
       logicalVolume.rootBlock.updateDiskLastModificationTime
       val diff = System.currentTimeMillis -

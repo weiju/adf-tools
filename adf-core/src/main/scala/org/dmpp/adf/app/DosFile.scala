@@ -59,14 +59,6 @@ trait DosFile {
   def comment: String
 
   /**
-   * Last access time. This is a property of non-root directories.
-   * Called on the root directory or a file, this will throw an
-   * UnsupportedOperationException.
-   * @return the last access time
-   */
-  def lastAccessTime: Date
-
-  /**
    * Last modification time. This is a property of root directories and files.
    * Called on a non-root directory, this will throw an
    * UnsupportedOperationException.
@@ -81,12 +73,10 @@ trait DosFile {
  * @param dirEntryBlock a DirectoryEntryBlock
  */
 abstract class AbstractDosFile(val dirEntryBlock: DirectoryEntryBlock) extends DosFile {
-  def name                 = dirEntryBlock.name
-  def comment              = dirEntryBlock.comment
-  def lastAccessTime       = dirEntryBlock.lastAccessTime
-  def lastModificationTime: Date = {
-    throw new UnsupportedOperationException("not supported")
-  }
-  override def toString = name
+  def name                       = dirEntryBlock.name
+  def comment                    = dirEntryBlock.comment
+  def lastModificationTime       = dirEntryBlock.lastModificationTime
+  def updateLastModificationTime = dirEntryBlock.updateLastModificationTime
+  override def toString          = name
 }
 

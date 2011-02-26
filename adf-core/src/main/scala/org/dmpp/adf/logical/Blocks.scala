@@ -159,19 +159,19 @@ extends LogicalBlock with ReadsBcplStrings with HasChecksum with SectorBasedChec
   def nextInHashBucket_=(next: Int) = sector.setInt32At(OffsetHashNext, next)
 
   /**
-   * Returns the last access time.
+   * Returns the last modification time.
    * @return last access time
    */
-  def lastAccessTime: Date = {
+  def lastModificationTime: Date = {
     AmigaDosDate(sector.int32At(sector.sizeInBytes - 92),
                  sector.int32At(sector.sizeInBytes - 88),
                  sector.int32At(sector.sizeInBytes - 84)).toDate
   }
 
   /**
-   * Sets the last access time to the current time.
+   * Sets the last modification time to the current time.
    */
-  def updateLastAccessTime {
+  def updateLastModificationTime {
     import AmigaDosDateConversions._
     val amigaDate: AmigaDosDate = new Date
     sector.setInt32At(sector.sizeInBytes - 92, amigaDate.daysSinceJan_1_78)

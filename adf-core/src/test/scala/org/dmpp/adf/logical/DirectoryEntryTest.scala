@@ -104,7 +104,7 @@ object DirectoryEntrySpec extends Specification {
     }
     "System dir lastAccessTime is supported" in {
       val sysdir = logicalVolume.rootBlock.blockForName("System").get
-      formatted(sysdir.asInstanceOf[UserDirectoryBlock].lastAccessTime) must_==
+      formatted(sysdir.asInstanceOf[UserDirectoryBlock].lastModificationTime) must_==
         "1989-08-16 13:02:13.320"
     }
 
@@ -121,11 +121,6 @@ object DirectoryEntrySpec extends Specification {
       val file = logicalVolume.rootBlock.blockForName("Disk.info").get
       formatted(file.asInstanceOf[FileHeaderBlock].lastModificationTime) must_==
         "1988-08-13 19:11:55.800"
-    }
-    "File lastAccessTime is throws UnsupportedOperationException" in {
-      val file = logicalVolume.rootBlock.blockForName("Disk.info").get
-      file.asInstanceOf[FileHeaderBlock].lastAccessTime must
-        throwA[UnsupportedOperationException]
     }
     "File rename is supported" in {
       val file = logicalVolume.rootBlock.blockForName("Disk.info").get
@@ -183,10 +178,10 @@ object DirectoryEntrySpec extends Specification {
       sysdir.nextInHashBucket must_== 1234
     }
 
-    "update last access time" in {
+    "update last modification time" in {
       val sysdir = logicalVolume.rootBlock.blockForName("System").get
-      sysdir.updateLastAccessTime
-      (System.currentTimeMillis - sysdir.lastAccessTime.getTime) must beLessThan(1000l)
+      sysdir.updateLastModificationTime
+      (System.currentTimeMillis - sysdir.lastModificationTime.getTime) must beLessThan(1000l)
     }
 
     // initializing
