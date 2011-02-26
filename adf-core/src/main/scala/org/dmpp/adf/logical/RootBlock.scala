@@ -50,6 +50,7 @@ extends HeaderBlock(physicalVolume, blockNumber)
 with DirectoryBlock {
 
   import RootBlock._
+  import AmigaDosDateConversions._
   
   /**
    * Initializes an empty root block.
@@ -62,6 +63,9 @@ with DirectoryBlock {
     name = aName
     hashtableSize = 0x48
     setBitmapBlockIdAt(0, 881)
+    updateCreationTime
+    updateLastModificationTime
+    updateDiskLastModificationTime
     recomputeChecksum
   }
 
@@ -121,12 +125,12 @@ with DirectoryBlock {
                  sector.int32At(sector.sizeInBytes - 36),
                  sector.int32At(sector.sizeInBytes - 32)).toDate
   }
+  /**
+   * Updates the last modification time of this disk.
+   */
   def updateDiskLastModificationTime {
-    import AmigaDosDateConversions._
-    val amigaDate: AmigaDosDate = new Date
-    sector.setInt32At(sector.sizeInBytes - 40, amigaDate.daysSinceJan_1_78)
-    sector.setInt32At(sector.sizeInBytes - 36, amigaDate.minutesPastMidnight)
-    sector.setInt32At(sector.sizeInBytes - 32, amigaDate.ticksPastLastMinute)
+    setDateToSector(new Date, sector.sizeInBytes - 40)
+    recomputeChecksum
   }
 
   /**
@@ -138,5 +142,15 @@ with DirectoryBlock {
     AmigaDosDate(sector.int32At(sector.sizeInBytes - 28),
                  sector.int32At(sector.sizeInBytes - 24),
                  sector.int32At(sector.sizeInBytes - 20)).toDate
+  }
+
+  private def updateCreationTime {
+    setDateToSector(new Date, sector.sizeInBytes - 28)
+  }
+
+  private def setDateToSector(amigaDate: AmigaDosDate, offset: Int) {
+    sector.setInt32At(offset, amigaDate.daysSinceJan_1_78)
+    sector.setInt32At(offset + 4, amigaDate.minutesPastMidnight)
+    sector.setInt32At(offset + 8, amigaDate.ticksPastLastMinute)
   }
 }

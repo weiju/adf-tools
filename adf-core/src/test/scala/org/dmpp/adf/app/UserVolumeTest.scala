@@ -53,6 +53,12 @@ object UserVolumeSpec extends Specification {
       emptyDiskOFS = UserVolumeFactory.createEmptyDoubleDensityDisk("OFSEmpty", "OFS")
     }
 
+    "new disk must have recent creation date" in {
+      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
+      mustBeRecent(empty.creationTime)
+      mustBeRecent(empty.rootDirectory.lastModificationTime)
+      mustBeRecent(empty.lastModificationTime)
+    }
     "read workbench root directory" in {
       workbenchDisk.name must_== "Workbench1.3"
       workbenchDisk.toString must_== "Workbench1.3[OFS]"
@@ -99,12 +105,23 @@ object UserVolumeSpec extends Specification {
       workbenchDisk.name must_== "MyBench"
       mustBeRecent(workbenchDisk.lastModificationTime)
     }
+    "create a directory" in {
+      val numFreeBlocks0 = emptyDisk.numFreeBlocks
+      val rootdir = emptyDisk.rootDirectory
+      val newdir = rootdir.createDirectory("mydir")
+      newdir.name must_== "mydir"
+      mustBeRecent(newdir.lastModificationTime)
+      newdir.thisDirectoryBlock.checksumIsValid must beTrue
+      emptyDisk.numFreeBlocks must_== (numFreeBlocks0 - 1)
+      mustBeRecent(rootdir.lastModificationTime)
+      mustBeRecent(emptyDisk.lastModificationTime)
+    }
   }
   def formatted(date: Date) = {
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)
   }
   def mustBeRecent(date: Date) = {
-    (System.currentTimeMillis - date.getTime) must beLessThan(1000l)
+    (System.currentTimeMillis - date.getTime) must beLessThan(500l)
   }
 }

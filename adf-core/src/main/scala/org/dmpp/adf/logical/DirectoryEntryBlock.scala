@@ -43,6 +43,19 @@ extends HeaderBlock(physicalVolume, blockNumber) with HasComment
 with HasAccessRights {
   def isDirectory  = secondaryType == BlockType.StUserDir
   def isFile       = secondaryType == BlockType.StFile
+
+  /**
+   * Initializes the data occupied by this block.
+   * @param parentBlock the parent directory's block number
+   * @param aName the entry's name
+   */
+  def initialize(parentBlock: Int, aName: String) {
+    for (i <- 0 until sector.sizeInBytes) sector(i) = 0
+    primaryType = BlockType.PtShort
+    headerKey   = blockNumber
+    parent      = parentBlock
+    name        = aName
+  }
 }
 
 /**
@@ -51,6 +64,10 @@ with HasAccessRights {
 class UserDirectoryBlock(physicalVolume: PhysicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(physicalVolume, blockNumber)
 with DirectoryBlock {
+  override def initialize(parentBlock: Int, aName: String) {
+    super.initialize(parentBlock, aName)
+    secondaryType = BlockType.StUserDir
+  }
 }
 
 /**
@@ -88,17 +105,9 @@ extends DirectoryEntryBlock(physicalVolume, blockNumber) {
   def fileSize  = sector.int32At(sector.sizeInBytes - 188)
   def fileSize_=(size: Int) = sector.setInt32At(sector.sizeInBytes - 188, size)
 
-  /**
-   * Initializes the data occupied by this block.
-   */
-  def initialize(parentBlock: Int, fileName: String) {
-    printf("FileHeaderBlock.initialize(), block#: %d\n", blockNumber)
-    for (i <- 0 until sector.sizeInBytes) sector(i) = 0
-    primaryType = BlockType.PtShort
+  override def initialize(parentBlock: Int, aName: String) {
+    super.initialize(parentBlock, aName)
     secondaryType = BlockType.StFile
-    headerKey  = blockNumber
-    parent     = parentBlock
-    name       = fileName
   }
 
   def dataBlock(index: Int): Int = {

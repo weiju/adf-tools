@@ -63,6 +63,13 @@ trait Directory extends DosFile {
    * @param dataBytes the array of data bytes to write
    */
   def createFile(filename: String, dataBytes: Array[Byte]): UserFile
+
+  /**
+   * Creates a new directory with the specified name.
+   * If there is not enough space on the volume, a DeviceIsFull exception is thrown.
+   * @param dirname the directory name
+   */
+  def createDirectory(dirname: String): UserDirectory
 }
 
 trait ContainsHashtableBlock {
@@ -169,6 +176,16 @@ trait ContainsHashtableBlock {
       remainSize -= dataSize
     }
     dataBlocks.reverse
+  }
+
+  def createDirectory(dirname: String): UserDirectory = {
+    if (logicalVolume.numFreeBlocks == 0) throw new DeviceIsFull
+    val dirBlock = logicalVolume.allocateUserDirectoryBlock(blockNumber, dirname)
+    thisDirectoryBlock.addToHashtable(dirBlock)
+    dirBlock.updateLastModificationTime
+    thisDirectoryBlock.updateLastModificationTime
+    logicalVolume.rootBlock.updateDiskLastModificationTime
+    new UserDirectory(logicalVolume, dirBlock)
   }
 }
 

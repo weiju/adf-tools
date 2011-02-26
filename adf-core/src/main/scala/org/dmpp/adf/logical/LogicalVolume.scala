@@ -170,9 +170,6 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
     val freeBlocksGreater880 = freeBlocks.filter(i => i > 880)
     val blockNumber = if (freeBlocksGreater880.length > 0) freeBlocksGreater880.head
                         else freeBlocks.head
-    //println("Free Blocks: " + numFreeBlocks)
-    //println("Used Blocks: " + usedBlockNumbers)
-    //println("Allocating block number: " + blockNumber)
     allocate(blockNumber)
     blockNumber
   }
@@ -186,10 +183,15 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
    * @return a new, initialized FileHeaderBlock
    */
   def allocateFileHeaderBlock(parentBlock: Int, name: String): FileHeaderBlock = {
-    val blocknumber = allocate
-    val fileheader = new FileHeaderBlock(physicalVolume, blocknumber)
+    val fileheader = new FileHeaderBlock(physicalVolume, allocate)
     fileheader.initialize(parentBlock, name)
     fileheader
+  }
+
+  def allocateUserDirectoryBlock(parentBlock: Int, name: String): UserDirectoryBlock = {
+    val dirblock = new UserDirectoryBlock(physicalVolume, allocate)
+    dirblock.initialize(parentBlock, name)
+    dirblock
   }
 
   /**
@@ -247,6 +249,11 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
     else throw new UnsupportedOperationException("unknown file system type")
   }
 
+  /**
+   * Returns the number of bytes per data block. On FFS this is equal to the
+   * entire block size, on OFS, we need to subtract the header size.
+   * @return number of bytes available in a data block
+   */
   def numBytesPerDataBlock: Int = {
     if (filesystemType == "FFS") blockSizeInBytes
     else if (filesystemType == "OFS") blockSizeInBytes - OfsDataBlock.HeaderSize

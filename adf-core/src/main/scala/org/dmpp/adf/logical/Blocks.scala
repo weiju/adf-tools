@@ -177,6 +177,7 @@ extends LogicalBlock with ReadsBcplStrings with HasChecksum with SectorBasedChec
     sector.setInt32At(sector.sizeInBytes - 92, amigaDate.daysSinceJan_1_78)
     sector.setInt32At(sector.sizeInBytes - 88, amigaDate.minutesPastMidnight)
     sector.setInt32At(sector.sizeInBytes - 84, amigaDate.ticksPastLastMinute)
+    recomputeChecksum
   }
 
   def storedChecksum  = sector.int32At(20)
