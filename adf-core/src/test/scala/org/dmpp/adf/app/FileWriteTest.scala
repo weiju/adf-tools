@@ -59,6 +59,7 @@ object FileWriteSpec extends Specification {
 
       emptyDiskFFS.logicalVolume.rootBlock.hashtableSize must_== 0x48
       emptyDiskFFS.logicalVolume.rootBlock.bitmapIsValid must beTrue
+      emptyDiskFFS.logicalVolume.rootBlock.checksumIsValid must beTrue
       mustBeRecent(emptyDiskFFS.lastModificationTime)
       val rootdir = emptyDiskFFS.rootDirectory
       mustBeRecent(rootdir.lastModificationTime)

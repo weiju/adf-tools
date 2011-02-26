@@ -89,21 +89,25 @@ object UserVolumeSpec extends Specification {
     }
 
     "rename a file" in {
-      val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get
+      val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get.asInstanceOf[UserFile]
       diskInfo.name = "NewDisk.info"
       diskInfo.name must_== "NewDisk.info"
+      diskInfo.fileHeaderBlock.checksumIsValid must beTrue
       mustBeRecent(diskInfo.lastModificationTime)
     }
     "rename a directory" in {
-      val dir = workbenchDisk.rootDirectory.find("Utilities").get
+      val dir = workbenchDisk.rootDirectory.find("Utilities").get.asInstanceOf[UserDirectory]
       dir.name = "Utils"
       dir.name must_== "Utils"
+      dir.thisDirectoryBlock.checksumIsValid must beTrue
+      workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
       mustBeRecent(dir.lastModificationTime)
     }
     "rename a disk" in {
       workbenchDisk.name = "MyBench"
       workbenchDisk.name must_== "MyBench"
       mustBeRecent(workbenchDisk.lastModificationTime)
+      workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
     }
     "create a directory" in {
       val numFreeBlocks0 = emptyDisk.numFreeBlocks
@@ -115,6 +119,7 @@ object UserVolumeSpec extends Specification {
       emptyDisk.numFreeBlocks must_== (numFreeBlocks0 - 1)
       mustBeRecent(rootdir.lastModificationTime)
       mustBeRecent(emptyDisk.lastModificationTime)
+      workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
     }
   }
   def formatted(date: Date) = {

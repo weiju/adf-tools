@@ -86,6 +86,6 @@ class DirectoryTreeModel extends TreeModel {
     listeners = listeners.filter(l => l != listener)
   }
   def valueForPathChanged(path: TreePath, newValue: Object) {
-    println("valueForPathChanged()")
+    println("valueForPathChanged(), path: " + path + " value: "  + newValue)
   }
 }

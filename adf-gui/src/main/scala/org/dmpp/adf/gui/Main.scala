@@ -186,6 +186,7 @@ class AdfToolsFrame extends JFrame("ADF Tools") {
     setCurrentDir(null)
 
     saveAsItem.setEnabled(currentVolume != null)
+    tree.setEditable(currentVolume != null)
     updateStatusbar
   }
 

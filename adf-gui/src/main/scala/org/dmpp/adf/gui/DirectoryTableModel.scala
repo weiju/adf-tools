@@ -46,20 +46,33 @@ class DirectoryTableModel extends AbstractTableModel {
   }
   
   val Headers = Array("Name", "Size", "Last Modified", "Kind")
+
+  override def isCellEditable(row: Int, column: Int) = column == 0
+
   def getRowCount = {
     if (_currentDir == null) 0 else _currentDir.list.length
   }
+
   override def getColumnClass(col: Int): Class[_] = {
     if (col == 1) classOf[java.lang.Integer]
     else super.getColumnClass(col)
   }
+
   def getColumnCount = Headers.length
+
   override def getColumnName(col: Int) = Headers(col)
+
+  override def setValueAt(value: Object, row: Int, col: Int) {
+    if (col == 0) {
+      _currentDir.list(row).name = value.toString
+    }
+  }
   def getValueAt(row: Int, col: Int): Object = {
     if (_currentDir != null) {
       getValueForColumn(_currentDir.list(row), col)
     } else ""
   }
+
   private def getValueForColumn(file: DosFile, column: Int): Object = {
     column match {
       case 0 => file.name
