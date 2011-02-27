@@ -37,6 +37,9 @@ object BootBlock {
   val FlagFFS              = 1
   val FlagIntlOnly         = 2
   val FlagDirCacheAndIntl  = 4
+
+  val OffsetRootBlockNumber = 8
+  val RootBlockDD          = 880
 }
 
 /**
@@ -72,7 +75,10 @@ class BootBlock(physicalVolume: PhysicalVolume) extends HasChecksum with BitHelp
   def useDirCache     = flagSet(flags, FlagDirCacheAndIntl)
   private def flags = physicalVolume(3) & 0x07
   
-  def rootBlockNumber = physicalVolume.int32At(8)
+  def rootBlockNumber = physicalVolume.int32At(OffsetRootBlockNumber)
+  private def rootBlockNumber_=(blockNumber: Int) {
+    physicalVolume.setInt32At(OffsetRootBlockNumber, blockNumber)
+  }
   def storedChecksum  = physicalVolume.int32At(4)
   def recomputeChecksum = physicalVolume.setInt32At(4, computedChecksum)
   

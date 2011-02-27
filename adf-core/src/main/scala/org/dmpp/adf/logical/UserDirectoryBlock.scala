@@ -1,5 +1,5 @@
 /**
- * Created on February 14, 2011
+ * Created on February 26, 2011
  * Copyright (c) 2011, Wei-ju Wu
  * All rights reserved.
  *
@@ -27,42 +27,18 @@
  */
 package org.dmpp.adf.logical
 
-import java.util.Date
-import org.dmpp.adf.physical._
-
 /**
- * A block that we can quickly wrap around a sector in order to determine
- * its type.
- * @constructor creates an DirectoryEntryBlock instance
- * @param logicalVolume a [[org.dmpp.adf.logical.LogicalVolume]] instance
- * @param blockNumber the block number
+ * A class to represent a user directory block.
+ * @constructor creates an instance of UserDirectoryBlock
+ * @param logicalVolume containing LogicalVolume instance
+ * @param blockNumber this block's number within the logical volume
  */
-class DirectoryEntryBlock(logicalVolume: LogicalVolume,
-                          blockNumber: Int)
-extends HeaderBlock(logicalVolume, blockNumber) with HasComment
-with HasAccessRights {
-  /**
-   * Indicates whether this block is a directory block.
-   * @return true if directory block, false otherwise
-   */
-  def isDirectory  = secondaryType == BlockType.StUserDir
+class UserDirectoryBlock(logicalVolume: LogicalVolume, blockNumber: Int)
+extends DirectoryEntryBlock(logicalVolume, blockNumber)
+with DirectoryBlock {
 
-  /**
-   * Indicates whether this block is a file header block.
-   * @return true if file header block, false otherwise
-   */
-  def isFile       = secondaryType == BlockType.StFile
-
-  /**
-   * Initializes the data occupied by this block.
-   * @param parentBlock the parent directory's block number
-   * @param aName the entry's name
-   */
-  def initialize(parentBlock: Int, aName: String) {
-    for (i <- 0 until sector.sizeInBytes) sector(i) = 0
-    primaryType = BlockType.PtShort
-    headerKey   = blockNumber
-    parent      = parentBlock
-    name        = aName
+  override def initialize(parentBlock: Int, aName: String) {
+    super.initialize(parentBlock, aName)
+    secondaryType = BlockType.StUserDir
   }
 }

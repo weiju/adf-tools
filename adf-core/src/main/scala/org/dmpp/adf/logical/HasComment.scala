@@ -27,11 +27,18 @@
  */
 package org.dmpp.adf.logical
 
+/**
+ * Constants for HasComment trait.
+ */
 object HasComment {
   val CommentMaxChars = 79
 }
 
-trait HasComment extends ReadsBcplStrings { self : HeaderBlock =>
+/**
+ * Trait for blocks that has comments.
+ */
+trait HasComment extends ReadsBcplStrings {
+  self : HeaderBlock =>
 
   import HasComment._
 

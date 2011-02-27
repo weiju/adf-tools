@@ -28,14 +28,19 @@
 package org.dmpp.adf.logical
 
 /**
- * Constants for DirectoryBlock class.
+ * Constants for DirectoryBlock trait.
  */
 object DirectoryBlock {
   val OffsetHashtableSize  = 12
   val OffsetHashtable      = 24
 }
 
-trait DirectoryBlock { self : HeaderBlock =>
+/**
+ * A trait that is mixed in by directory-type blocks, namely UserDirectoryBlock
+ * and RootBlock.
+ */
+trait DirectoryBlock {
+  self : HeaderBlock =>
 
   import DirectoryBlock._
 
@@ -129,6 +134,10 @@ trait DirectoryBlock { self : HeaderBlock =>
     }
   }
 
+  /**
+   * Adds an entry to the hash table.
+   * @param dirEntry the entry to add
+   */
   def addToHashtable(dirEntry: DirectoryEntryBlock) {
     val hashcode = hashcodeForName(dirEntry.name)
     dirEntry.nextInHashBucket = blockAtHashtableIndex(hashcode)

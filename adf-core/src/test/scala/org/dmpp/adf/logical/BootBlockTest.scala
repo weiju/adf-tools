@@ -1,5 +1,5 @@
 /**
- * Created on February 14, 2011
+ * Created on February 26, 2011
  * Copyright (c) 2011, Wei-ju Wu
  * All rights reserved.
  *
@@ -28,41 +28,34 @@
 package org.dmpp.adf.logical
 
 import java.util.Date
-import org.dmpp.adf.physical._
+import org.specs._
+import org.specs.runner.{ConsoleRunner, JUnit4}
 
-/**
- * A block that we can quickly wrap around a sector in order to determine
- * its type.
- * @constructor creates an DirectoryEntryBlock instance
- * @param logicalVolume a [[org.dmpp.adf.logical.LogicalVolume]] instance
- * @param blockNumber the block number
- */
-class DirectoryEntryBlock(logicalVolume: LogicalVolume,
-                          blockNumber: Int)
-extends HeaderBlock(logicalVolume, blockNumber) with HasComment
-with HasAccessRights {
-  /**
-   * Indicates whether this block is a directory block.
-   * @return true if directory block, false otherwise
-   */
-  def isDirectory  = secondaryType == BlockType.StUserDir
+class BootBlockTest extends JUnit4(BootBlockSpec)
+object BootBlockSpecRunner extends ConsoleRunner(BootBlockSpec)
 
-  /**
-   * Indicates whether this block is a file header block.
-   * @return true if file header block, false otherwise
-   */
-  def isFile       = secondaryType == BlockType.StFile
+object BootBlockSpec extends Specification {
+  var emptyOFS : LogicalVolume = null
+  var emptyFFS : LogicalVolume = null
+  def bootBlockOFS = emptyOFS.bootBlock
+  def bootBlockFFS = emptyFFS.bootBlock
 
-  /**
-   * Initializes the data occupied by this block.
-   * @param parentBlock the parent directory's block number
-   * @param aName the entry's name
-   */
-  def initialize(parentBlock: Int, aName: String) {
-    for (i <- 0 until sector.sizeInBytes) sector(i) = 0
-    primaryType = BlockType.PtShort
-    headerKey   = blockNumber
-    parent      = parentBlock
-    name        = aName
+  "BootBlock" should {
+    doBefore {
+      emptyOFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk", "OFS")
+      emptyFFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk", "FFS")
+    }
+
+    "boot block is initialized" in {
+      bootBlockOFS.filesystemType must_== "OFS"
+      bootBlockOFS.isInternational must beFalse
+      bootBlockOFS.useDirCache must beFalse
+
+      bootBlockFFS.filesystemType must_== "FFS"
+      bootBlockFFS.isInternational must beFalse
+      bootBlockFFS.useDirCache must beFalse
+    }
   }
 }
+
+

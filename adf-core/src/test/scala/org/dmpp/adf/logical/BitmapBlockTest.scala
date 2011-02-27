@@ -27,14 +27,14 @@
  */
 package org.dmpp.adf.logical
 
-/**
- * Test cases for bitmap blocks.
- */
 import org.specs._
 import org.specs.runner.{ConsoleRunner, JUnit4}
 
 import org.dmpp.adf.physical._
 
+/**
+ * Test cases for bitmap blocks.
+ */
 class BitmapBlockTest extends JUnit4(BitmapBlockSpec)
 object BitmapBlockSpecRunner extends ConsoleRunner(BitmapBlockSpec)
 
@@ -67,11 +67,12 @@ object BitmapBlockSpec extends Specification {
       bitmapBlock.initialize
       val oldChecksum = bitmapBlock.storedChecksum
       bitmapBlock.allocate(0)
-      bitmapBlock.storedChecksum must_!= oldChecksum
       bitmapBlock.freeBlockIndexes.length must_== NumBitsPerBitmapBlock - 1
       bitmapBlock.usedBlockIndexes must_== List(0)
       bitmapBlock.isAllocated(0) must beTrue
       bitmapBlock.isFree(0) must beFalse
+      bitmapBlock.storedChecksum must_!= oldChecksum
+      bitmapBlock.checksumIsValid must beTrue
     }
     "allocate another block" in {
       val bitmapBlock = new BitmapBlock(physicalVolume, 881)
@@ -79,6 +80,7 @@ object BitmapBlockSpec extends Specification {
       bitmapBlock.allocate(880)
       bitmapBlock.isAllocated(880) must beTrue
       bitmapBlock.isFree(880) must beFalse
+      bitmapBlock.checksumIsValid must beTrue
     }
     "prevent allocating the same block twice" in {
       val bitmapBlock = new BitmapBlock(physicalVolume, 881)
@@ -94,6 +96,7 @@ object BitmapBlockSpec extends Specification {
       bitmapBlock.free(878)
       bitmapBlock.isFree(878) must beTrue
       bitmapBlock.storedChecksum must_!= oldChecksum
+      bitmapBlock.checksumIsValid must beTrue
     }
     "has block 0 and 3 marked" in {
       val bitmapBlock = new BitmapBlock(physicalVolume, 881)

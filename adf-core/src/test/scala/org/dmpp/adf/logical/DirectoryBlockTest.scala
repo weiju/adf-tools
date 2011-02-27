@@ -1,5 +1,5 @@
 /**
- * Created on February 17, 2011
+ * Created on February 26, 2011
  * Copyright (c) 2011, Wei-ju Wu
  * All rights reserved.
  *
@@ -27,47 +27,51 @@
  */
 package org.dmpp.adf.logical
 
+import java.io._
+import java.util.Date
 import org.specs._
 import org.specs.runner.{ConsoleRunner, JUnit4}
 
 import org.dmpp.adf.physical._
 
-class LogicalVolumeFactoryTest extends JUnit4(LogicalVolumeFactorySpec)
-object LogicalVolumeFactorySpecRunner
-extends ConsoleRunner(LogicalVolumeFactorySpec)
+class DirectoryBlockTest extends JUnit4(DirectoryBlockSpec)
+object DirectoryBlockSpecRunner extends ConsoleRunner(DirectoryBlockSpec)
 
-object LogicalVolumeFactorySpec extends Specification {
+object DirectoryBlockSpec extends Specification {
 
-  "LogicalVolumeFactory" should {
+  var physicalVolume: PhysicalVolume = null
+  var logicalVolume: LogicalVolume = null
+  var emptyVolume : LogicalVolume = null
+  def dirBlock      = logicalVolume.rootBlock
+  def emptyDirBlock = emptyVolume.rootBlock
 
-    "create an empty volume" in {
-      val volume = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
-      checkForValidBootBlock(volume)      
-      checkForValidRootBlock(volume)
-      volume.numUsedBlocks must_== 2
-      volume.allocate(880) must throwA[BlockAlreadyAllocated]
-      volume.allocate(881) must throwA[BlockAlreadyAllocated]
-      //volume.usedBlockNumbersTestOnly must_== List(880, 881)
-      volume.name must_== "Empty"
-      volume.bootBlock.filesystemType must_== "FFS"
+  "DirectoryBlock" should {
+    doBefore {
+      emptyVolume = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk")
+
+      var workbenchFile: InputStream = null
+      try {
+        workbenchFile = getClass.getResourceAsStream("/wbench1.3.adf")
+        physicalVolume = PhysicalVolumeFactory.readDoubleDensityDisk(workbenchFile)
+        logicalVolume = new LogicalVolume(physicalVolume)
+      } finally {
+        if (workbenchFile != null) workbenchFile.close
+      }
     }
 
-    def checkForValidBootBlock(volume: LogicalVolume) {
-      volume.sizeInBytes must_== DoubleDensityDisk.ImageSize
-      volume(0).asInstanceOf[Char] must_== 'D'
-      volume(1).asInstanceOf[Char] must_== 'O'
-      volume(2).asInstanceOf[Char] must_== 'S'
-      for (i <- 4 until 1024) volume(i) must_== 0
+    "return 0 for non-existing file name" in {
+      dirBlock.blockNumberForName("notexisting") must_== 0
     }
-    def checkForValidRootBlock(volume: LogicalVolume) {
-      volume.rootBlock.primaryType must_== BlockType.PtShort
-      volume.rootBlock.secondaryType must_== BlockType.StRoot
-      volume.rootBlock.bitmapIsValid must beTrue
-      volume.rootBlock.name must_== "Empty"
-      volume.rootBlock.hashtableSize must_== 0x48 // = 72
-      volume.rootBlock.checksumIsValid must beTrue
-      volume.rootBlock.bitmapBlockIdAt(0) must_== 881
-      volume.rootBlock.bitmapBlockIdAt(1) must_== 0
+
+    "have hash table that contains system entries" in {
+      dirBlock.hashtableEntries.length must_== 24
+      dirBlock.hashtableEntries.find(e => e.name == "c") must_!= None
+      dirBlock.hashtableEntries.find(e => e.name == "System") must_!= None
+    }
+    "return valid block numbers for valid file names" in {
+      dirBlock.blockNumberForName("System") must_== 881
+      dirBlock.blockNumberForName("System.info") must_== 1289
+      dirBlock.blockNumberForName("Empty") must_== 1281
     }
   }
 }
