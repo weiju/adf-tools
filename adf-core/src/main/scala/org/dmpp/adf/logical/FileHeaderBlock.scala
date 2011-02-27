@@ -65,9 +65,10 @@ extends DirectoryEntryBlock(logicalVolume, blockNumber) {
   def fileSize  = sector.int32At(sector.sizeInBytes - 188)
   def fileSize_=(size: Int) = sector.setInt32At(sector.sizeInBytes - 188, size)
 
-  override def initialize(parentBlock: Int, aName: String) {
-    super.initialize(parentBlock, aName)
+  override def initialize(parentBlockNumber: Int, aName: String) {
+    super.initialize(parentBlockNumber, aName)
     secondaryType = BlockType.StFile
+    updateLastModificationTime
   }
 
   def dataBlock(index: Int): Int = {

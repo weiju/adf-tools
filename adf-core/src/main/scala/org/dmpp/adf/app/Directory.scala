@@ -160,8 +160,7 @@ trait ContainsHashtableBlock {
     if (numRequiredDataBlocks > logicalVolume.numFreeBlocks) {
       throw new DeviceIsFull
     }
-    val fileHeader = logicalVolume.allocateFileHeaderBlock(blockNumber, filename)
-    thisDirectoryBlock.addToHashtable(fileHeader)
+    val fileHeader = logicalVolume.createFileHeaderBlockIn(thisDirectoryBlock, filename)
     fileHeader.blockCount = numRequiredDataBlocks
     fileHeader.fileSize = fileSize
     fileHeader.updateLastModificationTime
@@ -187,11 +186,7 @@ trait ContainsHashtableBlock {
 
   def createDirectory(dirname: String): UserDirectory = {
     if (logicalVolume.numFreeBlocks == 0) throw new DeviceIsFull
-    val dirBlock = logicalVolume.allocateUserDirectoryBlock(blockNumber, dirname)
-    thisDirectoryBlock.addToHashtable(dirBlock)
-    dirBlock.updateLastModificationTime
-    thisDirectoryBlock.updateLastModificationTime
-    logicalVolume.rootBlock.updateDiskLastModificationTime
+    val dirBlock = logicalVolume.createUserDirectoryBlockIn(thisDirectoryBlock, dirname)
     new UserDirectory(logicalVolume, dirBlock)
   }
 }

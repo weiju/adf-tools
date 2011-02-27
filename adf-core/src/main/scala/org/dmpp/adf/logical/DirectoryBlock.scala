@@ -193,4 +193,6 @@ trait DirectoryBlock {
 
   /** Set this blocks last modification time to the current time. */
   def updateLastModificationTime
+
+  def blockNumber: Int
 }

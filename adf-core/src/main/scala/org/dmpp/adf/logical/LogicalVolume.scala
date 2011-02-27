@@ -184,22 +184,33 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
   }
 
   /**
-   * Returns a new, initialized file header block. The block used by this block will
-   * be marked as used.
+   * Returns a new, initialized file header block. The block number used by this
+   * block will be marked as used in the bitmap block and the parent's hash table
+   * will contain the entry.
    * @param parentBlock block number of parent
    * @param name file name
    * @param numDataBlocks number of data blocks
    * @return a new, initialized FileHeaderBlock
    */
-  def allocateFileHeaderBlock(parentBlock: Int, name: String): FileHeaderBlock = {
+  def createFileHeaderBlockIn(parentBlock: DirectoryBlock,
+                              name: String): FileHeaderBlock = {
     val fileheader = new FileHeaderBlock(this, allocate)
-    fileheader.initialize(parentBlock, name)
+    fileheader.initialize(parentBlock.blockNumber, name)
+    parentBlock.addToHashtable(fileheader)
     fileheader
   }
 
-  def allocateUserDirectoryBlock(parentBlock: Int, name: String): UserDirectoryBlock = {
+  /**
+   * Allocates a new, initialized user directory block.
+   * @param parentBlock the parent block's number
+   * @param name the directory name
+   */
+  def createUserDirectoryBlockIn(parentBlock: DirectoryBlock,
+                                 name: String): UserDirectoryBlock = {
     val dirblock = new UserDirectoryBlock(this, allocate)
-    dirblock.initialize(parentBlock, name)
+    dirblock.initialize(parentBlock.blockNumber, name)
+    parentBlock.addToHashtable(dirblock)
+    rootBlock.updateDiskLastModificationTime
     dirblock
   }
 

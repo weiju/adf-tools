@@ -55,14 +55,14 @@ with HasAccessRights {
 
   /**
    * Initializes the data occupied by this block.
-   * @param parentBlock the parent directory's block number
+   * @param parentBlockNumber the parent directory's block number
    * @param aName the entry's name
    */
-  def initialize(parentBlock: Int, aName: String) {
+  def initialize(parentBlockNumber: Int, aName: String) {
     for (i <- 0 until sector.sizeInBytes) sector(i) = 0
     primaryType = BlockType.PtShort
     headerKey   = blockNumber
-    parent      = parentBlock
+    parent      = parentBlockNumber
     name        = aName
   }
 }

@@ -55,9 +55,9 @@ object UserVolumeSpec extends Specification {
 
     "new disk must have recent creation date" in {
       val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
-      mustBeRecent(empty.creationTime)
-      mustBeRecent(empty.rootDirectory.lastModificationTime)
-      mustBeRecent(empty.lastModificationTime)
+      recent(empty.creationTime) must beTrue
+      recent(empty.rootDirectory.lastModificationTime) must beTrue
+      recent(empty.lastModificationTime) must beTrue
     }
     "read workbench root directory" in {
       workbenchDisk.name must_== "Workbench1.3"
@@ -93,7 +93,7 @@ object UserVolumeSpec extends Specification {
       diskInfo.name = "NewDisk.info"
       diskInfo.name must_== "NewDisk.info"
       diskInfo.fileHeaderBlock.checksumIsValid must beTrue
-      mustBeRecent(diskInfo.lastModificationTime)
+      recent(diskInfo.lastModificationTime) must beTrue
     }
     "rename a directory" in {
       val dir = workbenchDisk.rootDirectory.find("Utilities").get.asInstanceOf[UserDirectory]
@@ -101,12 +101,12 @@ object UserVolumeSpec extends Specification {
       dir.name must_== "Utils"
       dir.thisDirectoryBlock.checksumIsValid must beTrue
       workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
-      mustBeRecent(dir.lastModificationTime)
+      recent(dir.lastModificationTime) must beTrue
     }
     "rename a disk" in {
       workbenchDisk.name = "MyBench"
       workbenchDisk.name must_== "MyBench"
-      mustBeRecent(workbenchDisk.lastModificationTime)
+      recent(workbenchDisk.lastModificationTime) must beTrue
       workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
     }
     "create a directory" in {
@@ -114,11 +114,11 @@ object UserVolumeSpec extends Specification {
       val rootdir = emptyDisk.rootDirectory
       val newdir = rootdir.createDirectory("mydir")
       newdir.name must_== "mydir"
-      mustBeRecent(newdir.lastModificationTime)
+      recent(newdir.lastModificationTime) must beTrue
       newdir.thisDirectoryBlock.checksumIsValid must beTrue
       emptyDisk.numFreeBlocks must_== (numFreeBlocks0 - 1)
-      mustBeRecent(rootdir.lastModificationTime)
-      mustBeRecent(emptyDisk.lastModificationTime)
+      recent(rootdir.lastModificationTime) must beTrue
+      recent(emptyDisk.lastModificationTime) must beTrue
       workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
     }
   }
@@ -126,7 +126,7 @@ object UserVolumeSpec extends Specification {
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)
   }
-  def mustBeRecent(date: Date) = {
-    (System.currentTimeMillis - date.getTime) must beLessThan(500l)
+  def recent(date: Date) = {
+    (System.currentTimeMillis - date.getTime) < 500l
   }
 }

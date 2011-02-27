@@ -37,8 +37,9 @@ class UserDirectoryBlock(logicalVolume: LogicalVolume, blockNumber: Int)
 extends DirectoryEntryBlock(logicalVolume, blockNumber)
 with DirectoryBlock {
 
-  override def initialize(parentBlock: Int, aName: String) {
-    super.initialize(parentBlock, aName)
+  override def initialize(parentBlockNumber: Int, aName: String) {
+    super.initialize(parentBlockNumber, aName)
     secondaryType = BlockType.StUserDir
+    updateLastModificationTime
   }
 }

@@ -184,14 +184,36 @@ object DirectoryEntrySpec extends Specification {
       (System.currentTimeMillis - sysdir.lastModificationTime.getTime) must beLessThan(1000l)
     }
 
-    // initializing
-    "allocates a file header block" in {
-      val header = emptyFFS.allocateFileHeaderBlock(880, "myfile")
+    "create a file header block" in {
+      val rootBlock = emptyFFS.rootBlock
+      val header = emptyFFS.createFileHeaderBlockIn(rootBlock, "myfile")
       header.primaryType   must_== BlockType.PtShort
-      header.secondaryType must_== BlockType.StFile
+      header.isFile must beTrue
       header.headerKey must_== 882
       header.parent must_== 880
       header.name must_== "myfile"
+      header.checksumIsValid must beTrue
+      recent(header.lastModificationTime) must beTrue
+
+      rootBlock.checksumIsValid must beTrue
+      rootBlock.blockNumberForName("myfile") must_== 882
+      recent(rootBlock.lastModificationTime) must beTrue
+    }
+
+    "create a user directory block" in {
+      val rootBlock = emptyFFS.rootBlock
+      val dirblock = emptyFFS.createUserDirectoryBlockIn(rootBlock, "mydir")
+      dirblock.primaryType   must_== BlockType.PtShort
+      dirblock.isDirectory must beTrue
+      dirblock.headerKey must_== 882
+      dirblock.parent must_== 880
+      dirblock.name must_== "mydir"
+      dirblock.checksumIsValid must beTrue
+      recent(dirblock.lastModificationTime) must beTrue
+
+      rootBlock.checksumIsValid must beTrue
+      rootBlock.blockNumberForName("mydir") must_== 882
+      recent(rootBlock.lastModificationTime) must beTrue
     }
 
     "allocates an FFS data block" in {
@@ -216,5 +238,8 @@ object DirectoryEntrySpec extends Specification {
   def formatted(date: Date) = {
     val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)
+  }
+  def recent(date: Date) = {
+    (System.currentTimeMillis - date.getTime) < 500l
   }
 }
