@@ -78,7 +78,7 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
                  filesystemType: String = "FFS") {
     bootBlock.initialize(filesystemType)
     rootBlock.initialize(name)
-    new BitmapBlock(physicalVolume, 881).initialize
+    new BitmapBlock(this, 881).initialize
     allocate(880) // root block
     allocate(881) // bitmap block
   }
@@ -129,7 +129,7 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
   def int32At(byteNum: Int) = physicalVolume.int32At(byteNum)
 
   /** This volume's boot block. */
-  val bootBlock = new BootBlock(physicalVolume)
+  val bootBlock = new BootBlock(this)
 
   /** This volumes's root block. */
   val rootBlock = new RootBlock(this, RootSectorNumber)

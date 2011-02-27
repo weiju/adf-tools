@@ -45,10 +45,12 @@ object BootBlock {
 /**
  * This class represents the boot block on an Amiga volume.
  * @constructor creates a boot block for the given physical volume
- * @param physicalVolume a [[org.dmpp.adf.physical.PhysicalVolume]] instance.
+ * @param logicalVolume a [[org.dmpp.adf.physical.PhysicalVolume]] instance.
  */
-class BootBlock(physicalVolume: PhysicalVolume) extends HasChecksum with BitHelper {
+class BootBlock(logicalVolume: LogicalVolume) extends HasChecksum with BitHelper {
   import BootBlock._
+
+  private def physicalVolume = logicalVolume.physicalVolume
 
   /**
    * Initializes an empty boot block.

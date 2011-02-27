@@ -38,6 +38,7 @@ object DirectoryBlock {
 /**
  * A trait that is mixed in by directory-type blocks, namely UserDirectoryBlock
  * and RootBlock.
+ * Note: Removing/adding entries does not affect/regard the bitmap table.
  */
 trait DirectoryBlock {
   self : HeaderBlock =>
@@ -148,6 +149,11 @@ trait DirectoryBlock {
     sector.setInt32At(OffsetHashtable + index * 4, blockNumber)
   }
 
+  /**
+   * Removes the entry with the specified name from the hash table. If
+   * the name does not exist, nothing happens.
+   * @param name the name of the entry to remove
+   */
   def removeFromHashtable(name: String) {
     val hash = hashcodeForName(name)
     removeFromBucketRecursive(name, null, blockAtHashtableIndex(hash))
@@ -181,6 +187,10 @@ trait DirectoryBlock {
 
   // This is just here to make the compiler happy, ideally it should
   // just get it from the HeaderBlock
+
+  /** Recompute this blocks checksum. */
   def recomputeChecksum
+
+  /** Set this blocks last modification time to the current time. */
   def updateLastModificationTime
 }

@@ -41,24 +41,27 @@ class BlockAlreadyAllocated extends Exception
  * file system.
  *
  * @constructor creates a bitmap block in the specified sector of a volume
- * @param physicalVolume the physical volume
- * @param blockNumber ths block number
+ * @param logicalVolume the containing LogicalVolume
+ * @param blockNumber this block's number within the volume
  */
-class BitmapBlock(val physicalVolume: PhysicalVolume,
+class BitmapBlock(logicalVolume: LogicalVolume,
                   val blockNumber: Int)
 extends LogicalBlock with HasChecksum with SectorBasedChecksum
 with BitHelper {
 
-  val sector = physicalVolume.sector(blockNumber)
-  def sectorSize = physicalVolume.bytesPerSector
+  def physicalVolume = logicalVolume.physicalVolume
+  val sector         = physicalVolume.sector(blockNumber)
+  def sectorSize     = physicalVolume.bytesPerSector
+
   def storedChecksum        = sector.int32At(0)
-  def recomputeChecksum = sector.setInt32At(0, computedChecksum)
+  def recomputeChecksum     = sector.setInt32At(0, computedChecksum)
   def computedChecksum: Int = computeChecksum(0)
 
+  /**
+   * Initializes this bitmap block, marking all contained indexes as free.
+   */
   def initialize {
-    for (i <- 4 until sectorSize) {
-      sector(i) = 0xff.asInstanceOf[Byte]
-    }
+    for (i <- 4 until sectorSize) sector(i) = 0xff.asInstanceOf[Byte]
     recomputeChecksum
   }
 

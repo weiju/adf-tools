@@ -101,7 +101,7 @@ with DirectoryBlock {
   def bitmapBlockAt(index: Int): Option[BitmapBlock] = {
     val bitmapBlockId = bitmapBlockIdAt(index)
     if (bitmapBlockId <= 0) None
-    else Some(new BitmapBlock(physicalVolume, bitmapBlockId))
+    else Some(new BitmapBlock(logicalVolume, bitmapBlockId))
   }
   /**
    * Returns all the bitmap block of this file system.
@@ -111,7 +111,7 @@ with DirectoryBlock {
     var result: List[BitmapBlock] = Nil
     for (i <- 0 until MaxBitmapBlocks) {
       val bitmapBlockId = bitmapBlockIdAt(i)
-      if (bitmapBlockId > 0) result ::= new BitmapBlock(physicalVolume, bitmapBlockId)
+      if (bitmapBlockId > 0) result ::= new BitmapBlock(logicalVolume, bitmapBlockId)
     }
     result.reverse
   }

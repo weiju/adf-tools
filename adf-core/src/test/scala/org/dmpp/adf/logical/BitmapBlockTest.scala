@@ -40,31 +40,22 @@ object BitmapBlockSpecRunner extends ConsoleRunner(BitmapBlockSpec)
 
 object BitmapBlockSpec extends Specification {
 
-  var physicalVolume: PhysicalVolume = null
-  var logicalVolume: LogicalVolume = null  
   val NumBitsPerBitmapBlock = (DoubleDensityDisk.BytesPerSector - 4) * 8
+  var bitmapBlock : BitmapBlock = null
 
   "BitmapBlock" should {
 
     doBefore {
-      physicalVolume = new DoubleDensityDisk(new Array[Byte](DoubleDensityDisk.ImageSize))
-    }
-    "create an uninitialized bitmap block" in {
-      val bitmapBlock = new BitmapBlock(physicalVolume, 881)
-      bitmapBlock.storedChecksum must_== 0
-      bitmapBlock.freeBlockIndexes must_== Nil
-      bitmapBlock.usedBlockIndexes.length must_== NumBitsPerBitmapBlock
+      val emptyVolume = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk")
+      bitmapBlock = new BitmapBlock(emptyVolume, 881)
+      bitmapBlock.initialize
     }
     "initialize a bitmap block" in {
-      val bitmapBlock = new BitmapBlock(physicalVolume, 881)
-      bitmapBlock.initialize
       bitmapBlock.checksumIsValid must beTrue
       bitmapBlock.freeBlockIndexes.length must_== NumBitsPerBitmapBlock
       bitmapBlock.usedBlockIndexes must_== Nil
     }
     "allocate a block" in {
-      val bitmapBlock = new BitmapBlock(physicalVolume, 881)
-      bitmapBlock.initialize
       val oldChecksum = bitmapBlock.storedChecksum
       bitmapBlock.allocate(0)
       bitmapBlock.freeBlockIndexes.length must_== NumBitsPerBitmapBlock - 1
@@ -75,22 +66,16 @@ object BitmapBlockSpec extends Specification {
       bitmapBlock.checksumIsValid must beTrue
     }
     "allocate another block" in {
-      val bitmapBlock = new BitmapBlock(physicalVolume, 881)
-      bitmapBlock.initialize
       bitmapBlock.allocate(880)
       bitmapBlock.isAllocated(880) must beTrue
       bitmapBlock.isFree(880) must beFalse
       bitmapBlock.checksumIsValid must beTrue
     }
     "prevent allocating the same block twice" in {
-      val bitmapBlock = new BitmapBlock(physicalVolume, 881)
-      bitmapBlock.initialize
       bitmapBlock.allocate(878)
       bitmapBlock.allocate(878) must throwA[BlockAlreadyAllocated]
     }
     "frees an allocated block" in {
-      val bitmapBlock = new BitmapBlock(physicalVolume, 881)
-      bitmapBlock.initialize
       bitmapBlock.allocate(878)
       val oldChecksum = bitmapBlock.storedChecksum
       bitmapBlock.free(878)
@@ -99,9 +84,7 @@ object BitmapBlockSpec extends Specification {
       bitmapBlock.checksumIsValid must beTrue
     }
     "has block 0 and 3 marked" in {
-      val bitmapBlock = new BitmapBlock(physicalVolume, 881)
-      bitmapBlock.initialize
-      val sector = physicalVolume.sector(881)
+      val sector = bitmapBlock.physicalVolume.sector(881)
       sector.setInt32At(4, 0x6fffffff)
       bitmapBlock.isAllocated(31) must beTrue
       bitmapBlock.isFree(31) must beFalse

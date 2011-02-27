@@ -91,6 +91,13 @@ object DirectoryBlockSpec extends Specification {
       dirBlock.checksumIsValid must beTrue
       recent(dirBlock.lastModificationTime) must beTrue
     }
+    "remove a non-existing entry" in {
+      val oldEntryCount = dirBlock.hashtableEntries.length
+      dirBlock.removeFromHashtable("doesnotexist")
+
+      dirBlock.hashtableEntries.length must_== oldEntryCount
+      dirBlock.checksumIsValid must beTrue
+    }
 
     "remove an entry in the middle of the chain" in {
       val oldEntryCount = dirBlock.hashtableEntries.length
