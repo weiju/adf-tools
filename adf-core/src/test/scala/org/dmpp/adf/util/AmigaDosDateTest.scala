@@ -27,9 +27,6 @@
  */
 package org.dmpp.adf.util
 
-/**
- * Test cases for utility classes.
- */
 import org.specs._
 import org.specs.runner.{ConsoleRunner, JUnit4}
 
@@ -37,64 +34,13 @@ import java.io._
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
-class UtilTest extends JUnit4(UtilSpec)
-object UtilSpecRunner extends ConsoleRunner(UtilSpec)
+/**
+ * Test cases for AmigaDOS dates.
+ */
+class AmigaDosDateTest extends JUnit4(AmigaDosDateSpec)
+object AmigaDosDateSpecRunner extends ConsoleRunner(AmigaDosDateSpec)
 
-object MyBitHelper extends BitHelper
-
-
-object UtilSpec extends Specification {
-
-  "BitHelper" should {
-    "determine the bits set in a bit mask" in {
-      MyBitHelper.bitsSetIn(0) must_== Nil
-      MyBitHelper.bitsSetIn(1) must_== List(0)
-      MyBitHelper.bitsSetIn(6) must_== List(1, 2)
-    }
-    "determine the bits not set in a bit mask" in {
-      MyBitHelper.bitsClearIn(0xffffffff) must_== Nil
-      MyBitHelper.bitsClearIn(0xfffffffe) must_== List(0)
-      MyBitHelper.bitsClearIn(0) must_==
-        List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
-      MyBitHelper.bitsClearIn(0x0000ffff) must_==
-        List(16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
-    }
-    "make an unsigned 32 bit int" in {
-      MyBitHelper.makeInt32(0xff, 0xfe, 0xfd, 0xfc) must_== 0xfffefdfc
-      MyBitHelper.makeInt32(0x10, 0xfe, 0x20, 0xff) must_== 0x10fe20ff
-    }
-    "make an unsigned 16 bit int" in {
-      MyBitHelper.makeInt16(0xff, 0xfe) must_== 0xfffe
-      MyBitHelper.makeInt16(0x10, 0xfe) must_== 0x10fe
-    }
-  }
-  "UnsignedInt32" should {
-    import UnsignedInt32Conversions._
-
-    "make an UnsignedInt" in {
-      val uint = UnsignedInt32(32)
-      uint.value must_== 32l
-    }
-    "add two UnsignedInts" in {
-      val uint = UnsignedInt32(32)
-      val result = uint + 5
-      result.value must_== 37l
-      result.overflowOccurred must beFalse
-    }
-    "do a wrapping addition" in {
-      val uint = UnsignedInt32(UnsignedInt32.MaxValue)
-      val result = uint + 5
-      result.value must_== 4l
-      result.overflowOccurred must beTrue
-    }
-    "not allow negative values" in {
-      UnsignedInt32(-42) must throwA[IllegalArgumentException]
-    }
-    "not allow values exceeding the 32 bit unsigned range" in {
-      UnsignedInt32(4294967300l) must throwA[IllegalArgumentException]
-    }
-  }
+object AmigaDosDateSpec extends Specification {
 
   "AmigaDosDate" should {
     "represent its first date" in {
