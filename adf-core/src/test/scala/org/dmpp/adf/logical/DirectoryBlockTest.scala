@@ -41,14 +41,10 @@ object DirectoryBlockSpec extends Specification {
 
   var physicalVolume: PhysicalVolume = null
   var logicalVolume: LogicalVolume = null
-  var emptyVolume : LogicalVolume = null
   def dirBlock      = logicalVolume.rootBlock
-  def emptyDirBlock = emptyVolume.rootBlock
 
   "DirectoryBlock" should {
     doBefore {
-      emptyVolume = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk")
-
       var workbenchFile: InputStream = null
       try {
         workbenchFile = getClass.getResourceAsStream("/wbench1.3.adf")
@@ -68,10 +64,53 @@ object DirectoryBlockSpec extends Specification {
       dirBlock.hashtableEntries.find(e => e.name == "c") must_!= None
       dirBlock.hashtableEntries.find(e => e.name == "System") must_!= None
     }
+
     "return valid block numbers for valid file names" in {
       dirBlock.blockNumberForName("System") must_== 881
       dirBlock.blockNumberForName("System.info") must_== 1289
       dirBlock.blockNumberForName("Empty") must_== 1281
     }
+
+    "add a directory in a filled slot" in {
+      val oldEntryCount = dirBlock.hashtableEntries.length
+      // places itself in front of "Utilities"
+      addDirectory("myname")
+      dirBlock.hashtableEntries.find(e => e.name == "myname") must_!= None
+      dirBlock.hashtableEntries.length must_== oldEntryCount + 1
+      dirBlock.checksumIsValid must beTrue
+      recent(dirBlock.lastModificationTime) must beTrue
+    }
+
+    "remove a directory just added" in {
+      val oldEntryCount = dirBlock.hashtableEntries.length
+      addDirectory("myname")
+      dirBlock.removeFromHashtable("myname")
+
+      dirBlock.hashtableEntries.find(e => e.name == "myname") must_== None
+      dirBlock.hashtableEntries.length must_== oldEntryCount
+      dirBlock.checksumIsValid must beTrue
+      recent(dirBlock.lastModificationTime) must beTrue
+    }
+
+    "remove an entry in the middle of the chain" in {
+      val oldEntryCount = dirBlock.hashtableEntries.length
+      addDirectory("myname")
+      dirBlock.removeFromHashtable("Utilities")
+
+      dirBlock.hashtableEntries.find(e => e.name == "Utilities") must_== None
+      dirBlock.hashtableEntries.length must_== oldEntryCount
+      dirBlock.checksumIsValid must beTrue
+      recent(dirBlock.lastModificationTime) must beTrue
+    }
+  }
+
+  private def addDirectory(name: String) {
+    val newdir = new UserDirectoryBlock(logicalVolume, logicalVolume.allocate)
+    newdir.initialize(880, name)
+    dirBlock.addToHashtable(newdir)
+  }
+
+  def recent(date: Date): Boolean = {
+    System.currentTimeMillis - date.getTime < 500l
   }
 }

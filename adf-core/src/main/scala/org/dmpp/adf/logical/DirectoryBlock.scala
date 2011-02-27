@@ -142,15 +142,45 @@ trait DirectoryBlock {
     val hashcode = hashcodeForName(dirEntry.name)
     dirEntry.nextInHashBucket = blockAtHashtableIndex(hashcode)
     setBlockAtHashtableIndex(hashcode, dirEntry.blockNumber)
+    updateLastModificationTime
   }
   private def setBlockAtHashtableIndex(index: Int, blockNumber: Int) {
     sector.setInt32At(OffsetHashtable + index * 4, blockNumber)
   }
 
-  /**
-   * This is just here to make the compiler happy, ideally it should
-   * just get it from the HeaderBlock
-   */
+  def removeFromHashtable(name: String) {
+    val hash = hashcodeForName(name)
+    removeFromBucketRecursive(name, null, blockAtHashtableIndex(hash))
+  }
+
+  private def removeFromBucketRecursive(name: String,
+                                        previousBlock: DirectoryEntryBlock,
+                                        current: Int) {
+    if (current > 0) {
+      val currentBlock = new DirectoryEntryBlock(logicalVolume, current)
+      if (currentBlock.name == name) {
+        removeFromBucketChain(name, previousBlock, currentBlock)
+      } else {
+        removeFromBucketRecursive(name, currentBlock,
+                                  currentBlock.nextInHashBucket)
+      }
+    }
+  }
+
+  private def removeFromBucketChain(name: String,
+                                    previousBlock: DirectoryEntryBlock,
+                                    currentBlock: DirectoryEntryBlock) {
+    if (previousBlock == null) {
+      setBlockAtHashtableIndex(hashcodeForName(name),
+                               currentBlock.nextInHashBucket)          
+    } else {
+      previousBlock.nextInHashBucket = currentBlock.nextInHashBucket
+    }
+    updateLastModificationTime
+  }
+
+  // This is just here to make the compiler happy, ideally it should
+  // just get it from the HeaderBlock
   def recomputeChecksum
   def updateLastModificationTime
 }
