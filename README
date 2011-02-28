@@ -30,6 +30,8 @@ Status
 - supports OFS and FFS
 - can create disks
 - can add files to a disk
+- rename files/directories/disk, move files between directories
+- delete files (non-destructive)
 - can copy files from a disk
 
 Background
