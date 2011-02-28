@@ -112,6 +112,7 @@ extends LogicalBlock with ReadsBcplStrings with HasChecksum with SectorBasedChec
       throw new IllegalArgumentException("max. 30 characters for name")
     }
     setBcplStringAt(OffsetName, NameMaxChars, newName)
+    updateLastModificationTime
   }
 
   /**

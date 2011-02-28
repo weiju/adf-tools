@@ -200,39 +200,6 @@ object DirectoryEntrySpec extends Specification {
       recent(rootBlock.lastModificationTime) must beTrue
     }
 
-    "create a user directory block" in {
-      val rootBlock = emptyFFS.rootBlock
-      val dirblock = emptyFFS.createUserDirectoryBlockIn(rootBlock, "mydir")
-      dirblock.primaryType   must_== BlockType.PtShort
-      dirblock.isDirectory must beTrue
-      dirblock.headerKey must_== 882
-      dirblock.parent must_== 880
-      dirblock.name must_== "mydir"
-      dirblock.checksumIsValid must beTrue
-      recent(dirblock.lastModificationTime) must beTrue
-
-      rootBlock.checksumIsValid must beTrue
-      rootBlock.blockNumberForName("mydir") must_== 882
-      recent(rootBlock.lastModificationTime) must beTrue
-    }
-
-    "allocates an FFS data block" in {
-      val block = emptyFFS.allocateDataBlock(10, 1, 42)
-      block.maxDataBytes must_== 512
-      block.isOFS must beFalse
-      block.isFFS must beTrue
-    }
-    "allocates an OFS data block" in {
-      val block = emptyOFS.allocateDataBlock(10, 1, 42)
-      block.maxDataBytes must_== (512 - 24)
-      block.isOFS must beTrue
-      block.isFFS must beFalse
-      val ofsblock = block.asInstanceOf[OfsDataBlock]
-      ofsblock.primaryType must_== BlockType.PtData
-      ofsblock.headerKey must_== 10
-      ofsblock.seqNum must_== 1
-      ofsblock.dataSize must_== 42
-    }
   }
 
   def formatted(date: Date) = {

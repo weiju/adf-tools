@@ -33,6 +33,7 @@ import org.dmpp.adf.physical._
 import java.io._
 
 class DeviceIsFull extends Exception
+class DirectoryEntryNotFound extends Exception
 
 /**
  * A factory to create logical volume instances.
@@ -184,9 +185,13 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
   }
 
   /**
-   * Returns a new, initialized file header block. The block number used by this
-   * block will be marked as used in the bitmap block and the parent's hash table
-   * will contain the entry.
+   * Returns a new, initialized file header block.
+   * This method has a couple of global effects:
+   * - the block number used will be marked as used in the bitmap
+   * - the parent's hash table will contain the entry
+   * - the root block and parent's modification times are updated
+   * - checksums of modified blocks are updated
+   * 
    * @param parentBlock block number of parent
    * @param name file name
    * @param numDataBlocks number of data blocks
@@ -202,6 +207,12 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
 
   /**
    * Allocates a new, initialized user directory block.
+   * This method has a couple of global effects:
+   * - the block number used will be marked as used in the bitmap
+   * - the parent's hash table will contain the entry
+   * - the root block and parent's modification times are updated
+   * - checksums of modified blocks are updated
+   * 
    * @param parentBlock the parent block's number
    * @param name the directory name
    */
@@ -215,14 +226,34 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
   }
 
   /**
+   * Renames a directory entry within the specified parent block.
+   * @param parentBlock the parent directory block
+   * @param oldName the old name of the entry
+   * @param newName the new name of the entry
+   */
+  def renameDirectoryEntryIn(parentBlock: DirectoryBlock,
+                             oldName: String, newName: String) = {
+    parentBlock.blockForName(oldName) match {
+      case Some(entry) =>
+        parentBlock.removeFromHashtable(entry.name)
+        entry.name = newName
+        parentBlock.addToHashtable(entry)
+        entry
+      case _   => throw new DirectoryEntryNotFound
+    }
+  }
+
+  /**
    * Returns a new, initialized data block. The block used by this block will
    * be marked as used.
+   * @param fileHeaderBlock the FileHeaderBlock this data block belongs to 
    * @return a new, initialized DataBlock
    */
-  def allocateDataBlock(headerBlock: Int, seqnum: Int, dataSize: Int): DataBlock = {
+  def allocateDataBlock(fileHeaderBlock: FileHeaderBlock,
+                        seqnum: Int, dataSize: Int): DataBlock = {
     val datablock = if (filesystemType == "OFS") {
       val ofsblock = new OfsDataBlock(this, allocate)
-      ofsblock.initialize(headerBlock, seqnum, dataSize)
+      ofsblock.initialize(fileHeaderBlock.blockNumber, seqnum, dataSize)
       ofsblock
     } else if (filesystemType == "FFS") {
       val ffsblock = new FfsDataBlock(this, allocate)

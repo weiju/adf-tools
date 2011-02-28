@@ -44,20 +44,22 @@ object LogicalVolumeSpecRunner extends ConsoleRunner(LogicalVolumeSpec)
 
 object LogicalVolumeSpec extends Specification {
 
-  var empty: LogicalVolume = null
+  var emptyOFS: LogicalVolume = null
+  var emptyFFS: LogicalVolume = null
 
   "LogicalVolume" should {
 
     doBefore {
-      empty = LogicalVolumeFactory.createEmptyDoubleDensityDisk()
+      emptyFFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("Empty", "FFS")
+      emptyOFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("Empty", "OFS")
     }
     "be empty initialized" in {
-      checkForValidBootBlock(empty)
-      empty.numUsedBlocks must_== 2
-      empty.allocate(880) must throwA[BlockAlreadyAllocated]
-      empty.allocate(881) must throwA[BlockAlreadyAllocated]
-      empty.name must_== "Empty"
-      empty.bootBlock.filesystemType must_== "FFS"
+      checkForValidBootBlock(emptyFFS)
+      emptyFFS.numUsedBlocks must_== 2
+      emptyFFS.allocate(880) must throwA[BlockAlreadyAllocated]
+      emptyFFS.allocate(881) must throwA[BlockAlreadyAllocated]
+      emptyFFS.name must_== "Empty"
+      emptyFFS.bootBlock.filesystemType must_== "FFS"
     }
     def checkForValidBootBlock(volume: LogicalVolume) {
       volume.sizeInBytes must_== DoubleDensityDisk.ImageSize
@@ -69,38 +71,95 @@ object LogicalVolumeSpec extends Specification {
 
     // bitmap blocks
     "have valid bitmap blocks" in {
-      empty.rootBlock.bitmapBlocks.length must_== 1
-      val bitmapBlock = empty.rootBlock.bitmapBlocks.head
+      emptyFFS.rootBlock.bitmapBlocks.length must_== 1
+      val bitmapBlock = emptyFFS.rootBlock.bitmapBlocks.head
       bitmapBlock.blockNumber must_== 881
       bitmapBlock.checksumIsValid must beTrue
-      empty.numFreeBlocks must_== 1756
-      empty.numUsedBlocks must_== 2
+      emptyFFS.numFreeBlocks must_== 1756
+      emptyFFS.numUsedBlocks must_== 2
     }
 
     "allocate a block on an empty disk" in {
-      empty.allocate must_== 882
+      emptyFFS.allocate must_== 882
     }
     "allocate a block where the blocks after 880 are all full" in {
-      for (block <- 882 until 1760) empty.allocate(block)
-      empty.allocate must_== 2
+      for (block <- 882 until 1760) emptyFFS.allocate(block)
+      emptyFFS.allocate must_== 2
     }
     "allocate a block on a full volume" in {
-      val full = empty
+      val full = emptyFFS
       for (block <- 882 until 1760) full.allocate(block)
       for (block <- 2 until 880) full.allocate(block)
       full.allocate must throwA[DeviceIsFull]
     }
     "allocate block 885 on an empty disk" in {
-      empty.numFreeBlocks must_== 1756
-      empty.allocate(882)
-      empty.allocate(883)
-      empty.allocate(884)
-      empty.allocate(885)
-      empty.numFreeBlocks must_== 1752
+      emptyFFS.numFreeBlocks must_== 1756
+      emptyFFS.allocate(882)
+      emptyFFS.allocate(883)
+      emptyFFS.allocate(884)
+      emptyFFS.allocate(885)
+      emptyFFS.numFreeBlocks must_== 1752
     }
-  }
+    "create a user directory block" in {
+      val rootBlock = emptyFFS.rootBlock
+      val dirblock = emptyFFS.createUserDirectoryBlockIn(rootBlock, "mydir")
+      dirblock.primaryType   must_== BlockType.PtShort
+      dirblock.isDirectory must beTrue
+      dirblock.headerKey must_== 882
+      dirblock.parent must_== 880
+      dirblock.name must_== "mydir"
+      dirblock.checksumIsValid must beTrue
+      recent(dirblock.lastModificationTime) must beTrue
+
+      rootBlock.checksumIsValid must beTrue
+      rootBlock.blockNumberForName("mydir") must_== 882
+      recent(rootBlock.lastModificationTime) must beTrue
+    }
+
+    "allocates an FFS data block" in {
+      val header = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
+      val block = emptyFFS.allocateDataBlock(header, 1, 42)
+      block.maxDataBytes must_== 512
+      block.isOFS must beFalse
+      block.isFFS must beTrue
+    }
+    "allocates an OFS data block" in {
+      val header = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
+      val block = emptyOFS.allocateDataBlock(header, 1, 42)
+      block.maxDataBytes must_== (512 - 24)
+      block.isOFS must beTrue
+      block.isFFS must beFalse
+      val ofsblock = block.asInstanceOf[OfsDataBlock]
+      ofsblock.primaryType must_== BlockType.PtData
+      ofsblock.headerKey must_== 882
+      ofsblock.seqNum must_== 1
+      ofsblock.dataSize must_== 42
+    }
+
+    "renames a non-existing directory" in {
+      val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
+      emptyFFS.renameDirectoryEntryIn(emptyFFS.rootBlock, "nonexisting", "foo") must
+        throwA[DirectoryEntryNotFound]
+    }
+    "renames an existing directory" in {
+      val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
+      val dirblock2 =
+        emptyFFS.renameDirectoryEntryIn(emptyFFS.rootBlock, "mydir", "mydir2")
+      dirblock2.name must_== "mydir2"
+      emptyFFS.rootBlock.blockForName("mydir") must_== None
+      emptyFFS.rootBlock.blockForName("mydir2") must_!= None
+      recent(emptyFFS.rootBlock.lastModificationTime) must beTrue
+      recent(emptyFFS.rootBlock.diskLastModificationTime) must beTrue
+      dirblock2.checksumIsValid must beTrue
+      emptyFFS.rootBlock.checksumIsValid must beTrue
+      emptyFFS.allocate(dirblock.blockNumber) must throwA[BlockAlreadyAllocated]
+    }
+   }
   def formatted(date: Date) = {
     val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)
+  }
+  def recent(date: Date) = {
+    (System.currentTimeMillis - date.getTime) < 500l
   }
 }

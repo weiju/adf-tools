@@ -124,7 +124,7 @@ trait ContainsHashtableBlock {
   }
 
   private def writeDataToBlocks(fileHeader: FileHeaderBlock, dataBytes: Array[Byte]) {
-    val dataBlocks = allocateDataBlocks(fileHeader.headerKey, dataBytes.length)
+    val dataBlocks = allocateDataBlocks(fileHeader, dataBytes.length)
     var srcPos = 0
     if (dataBlocks.length > 0) {
       fileHeader.firstDataBlockNumber = dataBlocks(0).blockNumber
@@ -167,7 +167,8 @@ trait ContainsHashtableBlock {
     fileHeader
   }
 
-  private def allocateDataBlocks(fileHeaderNum: Int, dataSize: Int): List[DataBlock] = {
+  private def allocateDataBlocks(fileHeader: FileHeaderBlock,
+                                 dataSize: Int): List[DataBlock] = {
     var numRequiredDataBlocks = dataSize / logicalVolume.numBytesPerDataBlock
     if ((dataSize % logicalVolume.numBytesPerDataBlock) > 0) numRequiredDataBlocks += 1
     printf("# allocated data blocks for data size: %d => %d\n",
@@ -177,7 +178,7 @@ trait ContainsHashtableBlock {
     var remainSize = dataSize
     for (i <- 0 until numRequiredDataBlocks) {
       val dataSize = math.min(remainSize, logicalVolume.numBytesPerDataBlock)
-      dataBlocks ::= logicalVolume.allocateDataBlock(fileHeaderNum,
+      dataBlocks ::= logicalVolume.allocateDataBlock(fileHeader,
                                                      i + 1, dataSize)
       remainSize -= dataSize
     }

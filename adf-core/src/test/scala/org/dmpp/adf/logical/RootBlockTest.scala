@@ -62,6 +62,8 @@ object RootBlockSpec extends Specification {
     "root block can be renamed" in {
       rootBlock.name = "NewDisk"
       rootBlock.name must_== "NewDisk"
+      rootBlock.checksumIsValid must beTrue
+      recent(rootBlock.lastModificationTime) must beTrue
     }
 
     "update disk modification time" in {
