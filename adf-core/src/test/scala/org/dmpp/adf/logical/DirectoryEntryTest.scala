@@ -115,7 +115,7 @@ object DirectoryEntrySpec extends Specification {
     }
     "Disk.info has data blocks" in {
       val diskInfo = logicalVolume.rootBlock.blockForName("Disk.info").get
-      diskInfo.asInstanceOf[FileHeaderBlock].dataBlocks must_== List(1285)
+      diskInfo.asInstanceOf[FileHeaderBlock].dataBlockNumbers must_== List(1285)
     }
     "File lastModificationTime is supported" in {
       val file = logicalVolume.rootBlock.blockForName("Disk.info").get

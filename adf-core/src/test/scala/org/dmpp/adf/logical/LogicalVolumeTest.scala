@@ -115,15 +115,24 @@ object LogicalVolumeSpec extends Specification {
       rootBlock.blockNumberForName("mydir") must_== 882
       recent(rootBlock.lastModificationTime) must beTrue
     }
+    "create two nested directories" in {
+      val numFreeBlocks0 = emptyFFS.numFreeBlocks
+      val dirblock1 = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "dir1")
+      val dirblock2 = emptyFFS.createUserDirectoryBlockIn(dirblock1, "dir2")
+      (numFreeBlocks0 - emptyFFS.numFreeBlocks) must_== 2
+      emptyFFS.isAllocated(dirblock1.blockNumber) must beTrue
+      emptyFFS.isAllocated(dirblock2.blockNumber) must beTrue
+      dirblock1.blockForName("dir2") must_!= None
+    }
 
-    "allocates an FFS data block" in {
+    "allocate an FFS data block" in {
       val header = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
       val block = emptyFFS.allocateDataBlock(header, 1, 42)
       block.maxDataBytes must_== 512
       block.isOFS must beFalse
       block.isFFS must beTrue
     }
-    "allocates an OFS data block" in {
+    "allocate an OFS data block" in {
       val header = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
       val block = emptyOFS.allocateDataBlock(header, 1, 42)
       block.maxDataBytes must_== (512 - 24)
@@ -148,27 +157,62 @@ object LogicalVolumeSpec extends Specification {
       dirblock2.name must_== "mydir2"
       emptyFFS.rootBlock.blockForName("mydir") must_== None
       emptyFFS.rootBlock.blockForName("mydir2") must_!= None
-      recent(emptyFFS.rootBlock.lastModificationTime) must beTrue
-      recent(emptyFFS.rootBlock.diskLastModificationTime) must beTrue
       dirblock2.checksumIsValid must beTrue
-      emptyFFS.rootBlock.checksumIsValid must beTrue
       emptyFFS.allocate(dirblock.blockNumber) must throwA[BlockAlreadyAllocated]
+
+      validRootBlock(emptyFFS.rootBlock) must beTrue
     }
-    "removes a non-existing directory" in {
+    "remove a non-existing directory" in {
       emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "nonexist") must
         throwA[DirectoryEntryNotFound]
     }
-    "removes an existing directory" in {
+    "remove an existing empty directory" in {
       val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
       val oldNumFreeBlocks = emptyFFS.numFreeBlocks
       emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "mydir")
       emptyFFS.rootBlock.blockForName("mydir") must_== None
       (emptyFFS.numFreeBlocks == oldNumFreeBlocks + 1) must beTrue
-      recent(emptyFFS.rootBlock.lastModificationTime) must beTrue
-      recent(emptyFFS.rootBlock.diskLastModificationTime) must beTrue
-      emptyFFS.rootBlock.checksumIsValid must beTrue
+      emptyFFS.isAllocated(dirblock.blockNumber) must beFalse
+
+      validRootBlock(emptyFFS.rootBlock) must beTrue
     }
+    "remove an existing file" in {
+      val numFreeBlocks0 = emptyFFS.numFreeBlocks
+      val fileHeader = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
+      val dataBlock = emptyFFS.allocateDataBlock(fileHeader, 1, 356)
+      fileHeader.setDataBlocks(356, List(dataBlock))
+      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "myfile")
+
+      emptyFFS.rootBlock.blockForName("myfile") must_== None
+      emptyFFS.numFreeBlocks must_== numFreeBlocks0
+      emptyFFS.isAllocated(fileHeader.blockNumber) must beFalse
+      emptyFFS.isAllocated(dataBlock.blockNumber) must beFalse
+
+      validRootBlock(emptyFFS.rootBlock) must beTrue
+    }
+
+    "remove two nested directories" in {
+      val numFreeBlocks0 = emptyFFS.numFreeBlocks
+      val dirblock1 = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "dir1")
+      val dirblock2 = emptyFFS.createUserDirectoryBlockIn(dirblock1, "dir2")
+      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "dir1")
+
+      emptyFFS.numFreeBlocks must_== numFreeBlocks0
+      emptyFFS.isAllocated(dirblock1.blockNumber) must beFalse
+      emptyFFS.isAllocated(dirblock2.blockNumber) must beFalse
+      emptyFFS.rootBlock.blockForName("dir1") must_== None
+
+      validRootBlock(emptyFFS.rootBlock) must beTrue
+    }
+
   }
+
+  def validRootBlock(rootBlock: RootBlock): Boolean = {
+    rootBlock.checksumIsValid &&
+    recent(rootBlock.lastModificationTime) &&
+    recent(rootBlock.diskLastModificationTime)
+  }
+
   def formatted(date: Date) = {
     val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)

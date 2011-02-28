@@ -56,14 +56,14 @@ extends DirectoryEntryBlock(logicalVolume, blockNumber) {
    * Sets the number of blocks used in this block list.
    * @param count the number of blocks used
    */
-  def blockCount_=(count: Int) = sector.setInt32At(OffsetBlockCount, count)
+  private def blockCount_=(count: Int) = sector.setInt32At(OffsetBlockCount, count)
 
   def firstDataBlockNumber = sector.int32At(OffsetFirstDataBlock) 
-  def firstDataBlockNumber_=(blockNumber: Int) {
+  private def firstDataBlockNumber_=(blockNumber: Int) {
     sector.setInt32At(OffsetFirstDataBlock, blockNumber)
   }
   def fileSize  = sector.int32At(sector.sizeInBytes - 188)
-  def fileSize_=(size: Int) = sector.setInt32At(sector.sizeInBytes - 188, size)
+  private def fileSize_=(size: Int) = sector.setInt32At(sector.sizeInBytes - 188, size)
 
   override def initialize(parentBlockNumber: Int, aName: String) {
     super.initialize(parentBlockNumber, aName)
@@ -71,20 +71,28 @@ extends DirectoryEntryBlock(logicalVolume, blockNumber) {
     updateLastModificationTime
   }
 
-  def dataBlock(index: Int): Int = {
-    val offset = OffsetDataBlockIndex0 - index * 4    
-    if (offset < 24) {
-      throw new UnsupportedOperationException("Large files not supported yet")
-    } else sector.int32At(offset)
+  def setDataBlocks(dataSize: Int, dataBlocks: List[DataBlock]) {
+    blockCount = dataBlocks.length
+    fileSize = dataSize
+    firstDataBlockNumber = if (dataBlocks.length > 0) dataBlocks(0).blockNumber
+                           else 0
+    for (index <- 0 until dataBlocks.length) {
+      setDataBlockNumberAt(index, dataBlocks(index).blockNumber)
+    }
+    recomputeChecksum
   }
-  def setDataBlock(index: Int, blockNumber: Int) {
+  private def setDataBlockNumberAt(index: Int, blockNumber: Int) {
     val offset = OffsetDataBlockIndex0 - index * 4
     if (offset < 24) {
       throw new UnsupportedOperationException("Large files not supported yet")
     } else sector.setInt32At(offset, blockNumber)
   }
 
-  def dataBlocks = {
+  /**
+   * Returns the list of data block numbers used by this file.
+   * @return list of data block numbers
+   */
+  def dataBlockNumbers = {
     var result: List[Int] = Nil
     var offset = OffsetDataBlockIndex0
     var atLastBlock = fileSize == 0

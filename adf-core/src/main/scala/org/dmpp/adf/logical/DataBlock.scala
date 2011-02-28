@@ -114,7 +114,6 @@ extends DataBlock {
   val sector = physicalVolume.sector(blockNumber)
 
   def initialize {
-    //printf("FfsDataBlock.initialize(), block#: %d\n", blockNumber)
     for (i <- 0 until sector.sizeInBytes) sector(i) = 0
   }
   def maxDataBytes = sector.sizeInBytes

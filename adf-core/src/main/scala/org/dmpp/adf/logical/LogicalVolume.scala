@@ -175,6 +175,15 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
   }
 
   /**
+   * Determines whether the specified block is marked as allocated on this volume.
+   * @param blockNumber the block number
+   * @return true if allocated, false if free
+   */
+  def isAllocated(blockNumber: Int) = {
+    rootBlock.bitmapBlockAt(0).get.isAllocated(blockNumber - 2)
+  }
+
+  /**
    * Retrieves the next free block on this volume. The allocation follows AmigaDOS:
    * It starts looking at all blocks > 880 and if it can't find one, it
    * searches for blocks > 1. If there is no free block to be found, DeviceIsFull
@@ -256,8 +265,13 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
   /**
    * Removes the directory entry with the specified name from its parent directory.
    * If the name does not exist, a DirectoryEntryNotFound is thrown.
-   * Note: Do not use, it can not remove directories recursively and can
-   * not remove data blocks attached to a file header
+   * When removing a FileHeaderBlock, the attached DataBlock instances are
+   * also marked as freed from the bitmap.
+   * When removing a UserDirectoryBlock, this method recursively removes all the
+   * sub entries from the bitmap.
+   * Note: The structure of the blocks is retained, so it is possible to restore
+   * the disk's data by scanning the disk blocks and rebuilding the bitmap.
+   * 
    * @param parentBlock the parent directory block
    * @param name the entry name
    */
@@ -265,22 +279,38 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
                                name: String) {
     parentBlock.blockForName(name) match {
       case Some(entry) =>
-        // TODO: Files, recursive directories
         parentBlock.removeFromHashtable(name)
-        val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
-        bitmapBlock0.free(entry.blockNumber - 2)
+        freeBlock(entry.blockNumber)
+        if (entry.isDirectory) {
+          // remove sub entries
+          val currentDir = entry.asInstanceOf[UserDirectoryBlock]
+          val subEntries = currentDir.hashtableEntries
+          for (subEntry <- subEntries) {
+            removeDirectoryEntryFrom(currentDir, subEntry.name)
+          }
+        } else {
+          // remove data blocks
+          val dataBlockNumbers = entry.asInstanceOf[FileHeaderBlock].dataBlockNumbers
+          dataBlockNumbers.foreach(freeBlock _)
+        }
       case _ => throw new DirectoryEntryNotFound
     }
+  }
+
+  private def freeBlock(blockNumber: Int) {
+    rootBlock.bitmapBlockAt(0).get.free(blockNumber - 2)
   }
 
   /**
    * Returns a new, initialized data block. The block used by this block will
    * be marked as used.
-   * @param fileHeaderBlock the FileHeaderBlock this data block belongs to 
+   * @param fileHeaderBlock the FileHeaderBlock this data block belongs to
+   * @param seqnum the sequence number of this block, 1-based
    * @return a new, initialized DataBlock
    */
   def allocateDataBlock(fileHeaderBlock: FileHeaderBlock,
                         seqnum: Int, dataSize: Int): DataBlock = {
+    if (seqnum <= 0) throw new IllegalArgumentException("seqnum must be > 0")
     val datablock = if (filesystemType == "OFS") {
       val ofsblock = new OfsDataBlock(this, allocate)
       ofsblock.initialize(fileHeaderBlock.blockNumber, seqnum, dataSize)

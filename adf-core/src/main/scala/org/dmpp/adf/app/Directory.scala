@@ -112,27 +112,34 @@ trait ContainsHashtableBlock {
     }
   }
   def createFile(filename: String, dataBytes: Array[Byte]) = {
-    // Need 1 file header block
-    // + enough data blocks to hold the data bytes
-    val fileHeader = createFileHeaderForNewFile(filename, dataBytes.length)
+    checkFileSize(dataBytes.length)
+    val fileHeader = createFileHeaderForNewFile(filename)
     writeDataToBlocks(fileHeader, dataBytes)
-    fileHeader.recomputeChecksum
+
     thisDirectoryBlock.recomputeChecksum
     thisDirectoryBlock.updateLastModificationTime
     logicalVolume.rootBlock.updateDiskLastModificationTime
     new UserFile(logicalVolume, fileHeader)
   }
 
-  private def writeDataToBlocks(fileHeader: FileHeaderBlock, dataBytes: Array[Byte]) {
+  private def checkFileSize(fileSize: Int) {
+    // Need 1 file header block
+    // + enough data blocks to hold the data bytes
+    val numRequiredDataBlocks = fileSize / logicalVolume.numBytesPerDataBlock
+    if (numRequiredDataBlocks > logicalVolume.numFreeBlocks) {
+      throw new DeviceIsFull
+    }
+  }
+
+  private def writeDataToBlocks(fileHeader: FileHeaderBlock,
+                                dataBytes: Array[Byte]) {
     val dataBlocks = allocateDataBlocks(fileHeader, dataBytes.length)
     var srcPos = 0
     if (dataBlocks.length > 0) {
-      fileHeader.firstDataBlockNumber = dataBlocks(0).blockNumber
       for (i <- 0 until dataBlocks.length) {
         val dataBlock = dataBlocks(i)
         srcPos = fillDataBlock(dataBlock, dataBytes, srcPos)
 
-        fileHeader.setDataBlock(i, dataBlock.blockNumber)
         if (logicalVolume.filesystemType == "OFS") {
           val ofsBlock = dataBlock.asInstanceOf[OfsDataBlock]
           if (i < dataBlocks.length - 1) {
@@ -141,6 +148,7 @@ trait ContainsHashtableBlock {
           ofsBlock.recomputeChecksum
         }
       }
+      fileHeader.setDataBlocks(dataBytes.length, dataBlocks)
     }
   }
 
@@ -155,14 +163,8 @@ trait ContainsHashtableBlock {
     }
     srcPos
   }
-  private def createFileHeaderForNewFile(filename: String, fileSize: Int) = {
-    val numRequiredDataBlocks = fileSize / logicalVolume.numBytesPerDataBlock
-    if (numRequiredDataBlocks > logicalVolume.numFreeBlocks) {
-      throw new DeviceIsFull
-    }
+  private def createFileHeaderForNewFile(filename: String) = {
     val fileHeader = logicalVolume.createFileHeaderBlockIn(thisDirectoryBlock, filename)
-    fileHeader.blockCount = numRequiredDataBlocks
-    fileHeader.fileSize = fileSize
     fileHeader.updateLastModificationTime
     fileHeader
   }
@@ -171,8 +173,6 @@ trait ContainsHashtableBlock {
                                  dataSize: Int): List[DataBlock] = {
     var numRequiredDataBlocks = dataSize / logicalVolume.numBytesPerDataBlock
     if ((dataSize % logicalVolume.numBytesPerDataBlock) > 0) numRequiredDataBlocks += 1
-    printf("# allocated data blocks for data size: %d => %d\n",
-           dataSize, numRequiredDataBlocks)
 
     var dataBlocks: List[DataBlock] = Nil
     var remainSize = dataSize

@@ -54,7 +54,7 @@ extends AbstractDosFile(fileHeaderBlock) {
    * @return data bytes
    */
   def dataBytes: Array[Byte] = {
-    val dataBlockNums = fileHeaderBlock.dataBlocks
+    val dataBlockNums = fileHeaderBlock.dataBlockNumbers
     val result = new Array[Byte](size)
     var currentBytesCopied = 0
     for (blockNum <- 0 until dataBlockNums.length) {
