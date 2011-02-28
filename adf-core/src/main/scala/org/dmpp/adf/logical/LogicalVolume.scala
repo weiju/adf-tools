@@ -301,6 +301,14 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
     rootBlock.bitmapBlockAt(0).get.free(blockNumber - 2)
   }
 
+  def moveDirectoryEntryTo(oldParentBlock: DirectoryBlock,
+                           newParentBlock: DirectoryBlock,
+                           directoryEntry: DirectoryEntryBlock) {
+    oldParentBlock.removeFromHashtable(directoryEntry.name)
+    newParentBlock.addToHashtable(directoryEntry)
+    rootBlock.updateDiskLastModificationTime
+  }
+
   /**
    * Returns a new, initialized data block. The block used by this block will
    * be marked as used.
