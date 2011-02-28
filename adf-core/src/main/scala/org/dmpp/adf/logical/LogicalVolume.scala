@@ -301,11 +301,16 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
     rootBlock.bitmapBlockAt(0).get.free(blockNumber - 2)
   }
 
-  def moveDirectoryEntryTo(oldParentBlock: DirectoryBlock,
-                           newParentBlock: DirectoryBlock,
-                           directoryEntry: DirectoryEntryBlock) {
-    oldParentBlock.removeFromHashtable(directoryEntry.name)
-    newParentBlock.addToHashtable(directoryEntry)
+  /**
+   * Moves a DirectoryEntry from one DirectoryBlock to another.
+   * @param directoryEntry the DirectoryEntry to move
+   * @param destParentBlock the destination directory
+   */
+  def moveDirectoryEntryTo(directoryEntry: DirectoryEntryBlock,
+                           destParentBlock: DirectoryBlock) {
+    val srcParentBlock = directoryBlockAt(directoryEntry.parent)
+    srcParentBlock.removeFromHashtable(directoryEntry.name)
+    destParentBlock.addToHashtable(directoryEntry)
     rootBlock.updateDiskLastModificationTime
   }
 

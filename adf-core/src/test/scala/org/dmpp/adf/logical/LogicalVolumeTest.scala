@@ -207,18 +207,17 @@ object LogicalVolumeSpec extends Specification {
 
     "move a directory to a different one" in {
       val rootBlock = emptyFFS.rootBlock
-      val dirblock1 = emptyFFS.createUserDirectoryBlockIn(rootBlock, "dir1")
-      val dirblock2 = emptyFFS.createUserDirectoryBlockIn(rootBlock, "dir2")
-      emptyFFS.moveDirectoryEntryTo(rootBlock, dirblock1, dirblock2)
+      val destdir = emptyFFS.createUserDirectoryBlockIn(rootBlock, "destdir")
+      val dirblock = emptyFFS.createUserDirectoryBlockIn(rootBlock, "dir")
+      emptyFFS.moveDirectoryEntryTo(dirblock, destdir)
 
-      rootBlock.blockForName("dir2") must_== None
-      dirblock1.blockForName("dir2") must_!= None
+      rootBlock.blockForName("dir") must_== None
+      destdir.blockForName("dir") must_!= None
 
-      validDirectoryBlock(dirblock1) must beTrue
-      validDirectoryBlock(dirblock2) must beTrue
+      validDirectoryBlock(destdir) must beTrue
+      validDirectoryBlock(dirblock) must beTrue
       validRootBlock(emptyFFS.rootBlock) must beTrue
     }
-
   }
 
   def validDirectoryBlock(directoryBlock: UserDirectoryBlock): Boolean = {
