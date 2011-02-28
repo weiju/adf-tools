@@ -145,6 +145,16 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
   }
 
   /**
+   * Retrieves the DirectoryBlock with the specified block number.
+   * @param blockNumber the block number
+   * @return the directory block
+   */
+  def directoryBlockAt(blockNumber: Int): DirectoryBlock = {
+    if (blockNumber == rootBlock.blockNumber) rootBlock
+    else userDirectoryBlockAt(blockNumber)
+  }
+
+  /**
    * Returns this volume's name.
    * @return the volume's name
    */
@@ -239,7 +249,27 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
         entry.name = newName
         parentBlock.addToHashtable(entry)
         entry
-      case _   => throw new DirectoryEntryNotFound
+      case _  => throw new DirectoryEntryNotFound
+    }
+  }
+
+  /**
+   * Removes the directory entry with the specified name from its parent directory.
+   * If the name does not exist, a DirectoryEntryNotFound is thrown.
+   * Note: Do not use, it can not remove directories recursively and can
+   * not remove data blocks attached to a file header
+   * @param parentBlock the parent directory block
+   * @param name the entry name
+   */
+  def removeDirectoryEntryFrom(parentBlock: DirectoryBlock,
+                               name: String) {
+    parentBlock.blockForName(name) match {
+      case Some(entry) =>
+        // TODO: Files, recursive directories
+        parentBlock.removeFromHashtable(name)
+        val bitmapBlock0 = rootBlock.bitmapBlockAt(0).get
+        bitmapBlock0.free(entry.blockNumber - 2)
+      case _ => throw new DirectoryEntryNotFound
     }
   }
 

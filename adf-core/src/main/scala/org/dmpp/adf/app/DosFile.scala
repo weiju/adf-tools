@@ -88,12 +88,11 @@ trait DosFile {
 abstract class AbstractDosFile(val dirEntryBlock: DirectoryEntryBlock) extends DosFile {
   def name                       = dirEntryBlock.name
   def name_=(newName: String) {
-    dirEntryBlock.name = newName
-    // note: currently a rename does not change the containing
-    // directory's time or the disk time
-    // also, there is no check for renaming to an already existing name
-    dirEntryBlock.updateLastModificationTime
+    dirEntryBlock.logicalVolume.renameDirectoryEntryIn(parentBlock,
+                                                       dirEntryBlock.name,
+                                                       newName)
   }
+  private def parentBlock = logicalVolume.directoryBlockAt(dirEntryBlock.parent)
   def comment                    = dirEntryBlock.comment
   def lastModificationTime       = dirEntryBlock.lastModificationTime
   def updateLastModificationTime = dirEntryBlock.updateLastModificationTime

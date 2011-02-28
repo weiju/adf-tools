@@ -159,6 +159,14 @@ object DirectoryEntrySpec extends Specification {
         asInstanceOf[FileHeaderBlock]
       fileHeader.parent = 123
       fileHeader.parent must_== 123
+      fileHeader.checksumIsValid must beTrue
+    }
+    "Disk.info changes nextInHashBucket" in {
+      val fileHeader = logicalVolume.rootBlock.blockForName("Disk.info").get.
+        asInstanceOf[FileHeaderBlock]
+      fileHeader.nextInHashBucket = 123
+      fileHeader.nextInHashBucket must_== 123
+      fileHeader.checksumIsValid must beTrue
     }
 
     // general HeaderBlock data

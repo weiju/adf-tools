@@ -125,7 +125,10 @@ extends LogicalBlock with ReadsBcplStrings with HasChecksum with SectorBasedChec
    * Sets the next block in the hash bucket list.
    * @param next new next pointer
    */
-  def nextInHashBucket_=(next: Int) = sector.setInt32At(OffsetHashNext, next)
+  def nextInHashBucket_=(next: Int) = {
+    sector.setInt32At(OffsetHashNext, next)
+    recomputeChecksum
+  }
 
   /**
    * Returns the last modification time.
@@ -154,5 +157,8 @@ extends LogicalBlock with ReadsBcplStrings with HasChecksum with SectorBasedChec
   def recomputeChecksum = sector.setInt32At(20, computedChecksum)
 
   def parent    = sector.int32At(OffsetParent)
-  def parent_=(newParent: Int) = sector.setInt32At(OffsetParent, newParent)
+  def parent_=(newParent: Int) = {
+    sector.setInt32At(OffsetParent, newParent)
+    updateLastModificationTime
+  }
 }

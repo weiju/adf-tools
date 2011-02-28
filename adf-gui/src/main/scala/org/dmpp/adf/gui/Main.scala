@@ -193,7 +193,7 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
     setCurrentDir(null)
 
     saveAsItem.setEnabled(currentVolume != null)
-    tree.setEditable(currentVolume != null)
+    //tree.setEditable(currentVolume != null)
     updateStatusbar
   }
 

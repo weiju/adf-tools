@@ -154,7 +154,21 @@ object LogicalVolumeSpec extends Specification {
       emptyFFS.rootBlock.checksumIsValid must beTrue
       emptyFFS.allocate(dirblock.blockNumber) must throwA[BlockAlreadyAllocated]
     }
-   }
+    "removes a non-existing directory" in {
+      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "nonexist") must
+        throwA[DirectoryEntryNotFound]
+    }
+    "removes an existing directory" in {
+      val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
+      val oldNumFreeBlocks = emptyFFS.numFreeBlocks
+      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "mydir")
+      emptyFFS.rootBlock.blockForName("mydir") must_== None
+      (emptyFFS.numFreeBlocks == oldNumFreeBlocks + 1) must beTrue
+      recent(emptyFFS.rootBlock.lastModificationTime) must beTrue
+      recent(emptyFFS.rootBlock.diskLastModificationTime) must beTrue
+      emptyFFS.rootBlock.checksumIsValid must beTrue
+    }
+  }
   def formatted(date: Date) = {
     val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)
