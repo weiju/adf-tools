@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.0 r9654"
+   sodipodi:docname="icons.svg">
+  <defs
+     id="defs4">
+    <linearGradient
+       id="linearGradient3812">
+      <stop
+         style="stop-color:#c8c8c6;stop-opacity:1;"
+         offset="0"
+         id="stop3814" />
+      <stop
+         style="stop-color:#ffffff;stop-opacity:0;"
+         offset="1"
+         id="stop3816" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient3794">
+      <stop
+         style="stop-color:#b6b8b8;stop-opacity:1;"
+         offset="0"
+         id="stop3796" />
+      <stop
+         style="stop-color:#ffffff;stop-opacity:0;"
+         offset="1"
+         id="stop3798" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3794"
+       id="linearGradient3800"
+       x1="155"
+       y1="160.36218"
+       x2="129"
+       y2="77.362183"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3812"
+       id="linearGradient3818"
+       x1="71.985489"
+       y1="233.36218"
+       x2="65.014511"
+       y2="188.36218"
+       gradientUnits="userSpaceOnUse" />
+    <filter
+       id="filter3834"
+       inkscape:label="Drop shadow"
+       width="1.5"
+       height="1.5"
+       x="-.25"
+       y="-.25">
+      <feGaussianBlur
+         id="feGaussianBlur3836"
+         in="SourceAlpha"
+         stdDeviation="2"
+         result="blur" />
+      <feColorMatrix
+         id="feColorMatrix3838"
+         result="bluralpha"
+         type="matrix"
+         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0 " />
+      <feOffset
+         id="feOffset3840"
+         in="bluralpha"
+         dx="2"
+         dy="2"
+         result="offsetBlur" />
+      <feMerge
+         id="feMerge3842">
+        <feMergeNode
+           id="feMergeNode3844"
+           in="offsetBlur" />
+        <feMergeNode
+           id="feMergeNode3846"
+           in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3812"
+       id="linearGradient3866"
+       gradientUnits="userSpaceOnUse"
+       x1="71.985489"
+       y1="233.36218"
+       x2="65.014511"
+       y2="188.36218" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3794"
+       id="linearGradient3027"
+       gradientUnits="userSpaceOnUse"
+       x1="155"
+       y1="160.36218"
+       x2="129"
+       y2="77.362183"
+       gradientTransform="matrix(0.22647281,0,0,0.19951528,89.161443,120.34566)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3794"
+       id="linearGradient3881"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.22647281,0,0,0.19951528,89.161443,120.34566)"
+       x1="155"
+       y1="160.36218"
+       x2="129"
+       y2="77.362183" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3794"
+       id="linearGradient3888"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.22716283,0,0,0.17407979,89.461404,130.77995)"
+       x1="155"
+       y1="160.36218"
+       x2="129"
+       y2="77.362183" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3794"
+       id="linearGradient3897"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.22716283,0,0,0.17407979,89.461404,130.77995)"
+       x1="155"
+       y1="160.36218"
+       x2="129"
+       y2="77.362183" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="5"
+     inkscape:cx="105.29428"
+     inkscape:cy="906.01348"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     inkscape:window-width="1440"
+     inkscape:window-height="852"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g3848"
+       transform="matrix(0.15886316,0,0,0.23993039,61.632904,98.38253)"
+       inkscape:export-filename="/Users/weiju/Projects/scala/adf-tools/adf-gui/src/main/resources/folder_icon.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90">
+      <rect
+         y="188.84767"
+         x="41.485493"
+         height="43.029011"
+         width="97.029015"
+         id="rect3802"
+         style="fill:url(#linearGradient3866);fill-opacity:1;stroke:#000000;stroke-width:3;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <rect
+         y="205.86218"
+         x="71"
+         height="11.35502"
+         width="37"
+         id="rect3804"
+         style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;filter:url(#filter3834)" />
+    </g>
+    <g
+       id="g3890"
+       inkscape:export-filename="/Users/weiju/Projects/scala/adf-tools/adf-gui/src/main/resources/document_icon.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90"
+       transform="matrix(0.85708615,0,0,0.85714519,16.492259,22.548299)">
+      <rect
+         y="144.15759"
+         x="115.69541"
+         height="13.409184"
+         width="13.409183"
+         id="rect2985"
+         style="fill:url(#linearGradient3897);fill-opacity:1;stroke:#000000;stroke-width:0.59081686;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         sodipodi:nodetypes="cc"
+         inkscape:connector-curvature="0"
+         id="path3759"
+         d="m 117.23871,146.32961 10.06452,0"
+         style="fill:none;stroke:#000000;stroke-width:0.77419353;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <image
+         style="fill:none;stroke:#000000;stroke-width:0.77399999;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         width="11"
+         height="1"
+         xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAABCAYAAAAIN1RAAAAABHNCSVQICAgIfAhkiAAAABhJREFU
+CJljrKysfLJp0yZBBgIgKirqCgC5pAZaTd4KBwAAAABJRU5ErkJggg==
+"
+         id="image3838"
+         x="116.87741"
+         y="147.89825" />
+      <image
+         style="stroke:#000000;stroke-width:0.77399999;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         width="11"
+         height="1"
+         xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAABCAYAAAAIN1RAAAAABHNCSVQICAgIfAhkiAAAABhJREFU
+CJljrKysfLJp0yZBBgIgKirqCgC5pAZaTd4KBwAAAABJRU5ErkJggg==
+"
+         id="image3849"
+         x="116.8774"
+         y="149.83669" />
+      <image
+         width="11"
+         height="1"
+         xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAABCAYAAAAIN1RAAAAABHNCSVQICAgIfAhkiAAAABdJREFU
+CJljbG9v/79mzRoGQiA7O5sBAL+XBdtM0rERAAAAAElFTkSuQmCC
+"
+         id="image3871"
+         x="116.7"
+         y="151.6622" />
+    </g>
+  </g>
+</svg>

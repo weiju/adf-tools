@@ -211,6 +211,9 @@ extends Directory with ContainsHashtableBlock {
   def parentDirectory = {
     throw new UnsupportedOperationException("root directory has no parent")
   }
+  def delete {
+    throw new UnsupportedOperationException("root directory can't be deleted")
+  }
 }
 
 /**

@@ -78,6 +78,11 @@ trait DosFile {
    * @return parent directory
    */
   def parentDirectory: Directory
+
+  /**
+   * Deletes this file from the volume.
+   */
+  def delete
 }
 
 /**
@@ -103,5 +108,10 @@ abstract class AbstractDosFile(val dirEntryBlock: DirectoryEntryBlock) extends D
     else
       new UserDirectory(logicalVolume,
                         logicalVolume.userDirectoryBlockAt(dirEntryBlock.parent))
+  }
+
+  def delete {
+    val parentDirBlock = logicalVolume.directoryBlockAt(dirEntryBlock.parent)
+    logicalVolume.removeDirectoryEntryFrom(parentDirBlock, name)
   }
 }

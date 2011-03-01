@@ -75,7 +75,7 @@ class DirectoryTableModel extends AbstractTableModel {
 
   private def getValueForColumn(file: DosFile, column: Int): Object = {
     column match {
-      case 0 => file.name
+      case 0 => file
       case 1 =>
         if (file.isDirectory) "-" else file.asInstanceOf[UserFile].size.toString
       case 2 =>

@@ -70,6 +70,11 @@ with DirectoryBlock {
   }
 
   def highSeq         = sector.int32At(8)
+
+  /**
+   * Number of the first data block.
+   * @return first data block
+   */
   def firstData       = sector.int32At(16)
 
   override def toString = {

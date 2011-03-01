@@ -29,6 +29,7 @@ package org.dmpp.adf.gui
 
 import java.io._
 import javax.swing._
+import javax.swing.table._
 import javax.swing.tree._
 import javax.swing.event._
 import java.awt.event._
@@ -36,6 +37,26 @@ import java.awt.{BorderLayout, Dimension, FlowLayout}
 
 import org.dmpp.adf.app._
 import org.dmpp.adf.logical._
+
+class FileTableCellRenderer extends DefaultTableCellRenderer {
+  val FolderIcon = new ImageIcon(getClass.getResource("/folder_icon.png"))
+  val FileIcon = new ImageIcon(getClass.getResource("/document_icon.png"))
+
+  override def getTableCellRendererComponent(table: JTable, value: Object,
+                                             isSelected: Boolean, hasFocus: Boolean,
+                                             row: Int, column: Int) = {
+    super.getTableCellRendererComponent(table, value, isSelected, hasFocus,
+                                        row, column)
+    val file = value.asInstanceOf[DosFile]
+    try {
+      if (file.isDirectory) setIcon(FolderIcon) else setIcon(FileIcon)
+    } catch {
+      case e => e.printStackTrace
+    }
+    setName(file.name)
+    this
+  }
+}
 
 /**
  * I originally wanted to use Scala Swing here, but there is no
@@ -46,10 +67,12 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
 
   var currentVolume: UserVolume = null
   var currentDir: Directory = null
-  var saveAsItem: JMenuItem = null
-  var addFileItem: JMenuItem = null
+  var saveAsItem:    JMenuItem = null
+  var addFileItem:   JMenuItem = null
   var addFolderItem: JMenuItem = null
-  var exportItem: JMenuItem = null
+  var exportItem:    JMenuItem = null
+  var deleteItem:    JMenuItem = null
+
   var statusMessageLabel: JLabel = null
 
   val treeModel = new DirectoryTreeModel
@@ -101,7 +124,8 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   }
 
   private def handleTableSelection(currentSelection: DosFile) {
-    exportItem.setEnabled(currentSelection.isFile)
+    exportItem.setEnabled(currentSelection != null && currentSelection.isFile)
+    deleteItem.setEnabled(currentSelection != null)
   }
 
   private def makeLeftPane {
@@ -112,13 +136,16 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   private def makeRightPane {
     table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
     val scrollPane = new JScrollPane(table)
+    table.getColumnModel.getColumn(0).setCellRenderer(new FileTableCellRenderer)
     splitPane.setRightComponent(scrollPane)
   }
 
   private def makeMenuBar {
     val menubar = new JMenuBar
     val fileMenu = new JMenu("File")
+    val editMenu = new JMenu("Edit")
     menubar.add(fileMenu)
+    menubar.add(editMenu)
 
     addMenuItem(fileMenu, "New Volume",
                 new ActionListener {
@@ -150,10 +177,16 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
                     def actionPerformed(e: ActionEvent) = System.exit(0)
                   })
     }
+
+    deleteItem = addMenuItem(editMenu, "Delete",
+                             new ActionListener {
+                               def actionPerformed(e: ActionEvent) = deleteSelected
+                             })
     saveAsItem.setEnabled(false)
     addFileItem.setEnabled(false)
     exportItem.setEnabled(false)
     addFolderItem.setEnabled(false)
+    deleteItem.setEnabled(false)
     
     setJMenuBar(menubar)
   }
@@ -279,6 +312,20 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   }
   private def makeUniqueFolderName = {
     "New Directory"
+  }
+
+  private def deleteSelected {
+    val fileToDelete = currentDir.list(table.getSelectedRow)
+    if (confirmDelete(fileToDelete)) {
+      fileToDelete.delete
+      tableModel.fireTableDataChanged
+    }
+  }
+  private def confirmDelete(file: DosFile): Boolean = {
+    JOptionPane.showConfirmDialog(this, ("Do you want to delete the file '%s'" +
+                                         " ?").format(file.name),
+                                  "Overwrite existing file",
+                                  JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
   }
 }
 
