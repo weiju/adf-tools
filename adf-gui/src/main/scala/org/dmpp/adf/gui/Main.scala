@@ -74,6 +74,9 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   var deleteItem:    JMenuItem = null
 
   var statusMessageLabel: JLabel = null
+  var lastSaveDirectory: File = null
+  var lastOpenDirectory: File = null
+  var lastImportDirectory: File = null
 
   val treeModel = new DirectoryTreeModel
   val tableModel = new DirectoryTableModel
@@ -209,10 +212,13 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   private def isMacOsX: Boolean = System.getProperty("mrj.version") != null
 
   private def openAdfFile {
-    val fileChooser = new JFileChooser
+    val fileChooser = if (lastOpenDirectory == null) new JFileChooser
+                      else new JFileChooser(lastOpenDirectory)
+
     fileChooser.setDialogTitle("Open ADF file...")
     fileChooser.setMultiSelectionEnabled(false)
     if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+      lastOpenDirectory = fileChooser.getSelectedFile.getParentFile
       setCurrentVolume(UserVolumeFactory.readFromFile(fileChooser.getSelectedFile))
     }
   }
@@ -254,13 +260,16 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
     genericSaveAs("Save as ADF file...", out => currentVolume.writeToOutputStream(out))
 
   }
+
   private def genericSaveAs(dialogTitle: String, writeFunc : (OutputStream => Unit)) {
-    val fileChooser = new JFileChooser
+    val fileChooser = if (lastSaveDirectory == null) new JFileChooser
+                      else new JFileChooser(lastSaveDirectory)
     fileChooser.setDialogTitle(dialogTitle)
     fileChooser.setMultiSelectionEnabled(false)
     if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
       val file = fileChooser.getSelectedFile
       if (!file.exists || confirmOverwrite(file)) {
+        lastSaveDirectory = file.getParentFile
         var out: FileOutputStream = null
         try {
           out = new FileOutputStream(file)
@@ -280,11 +289,14 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   }
 
   private def addFile {
-    val fileChooser = new JFileChooser
+    val fileChooser = if (lastImportDirectory == null) new JFileChooser
+                      else new JFileChooser(lastImportDirectory)
+
     fileChooser.setDialogTitle("Add file...")
     fileChooser.setMultiSelectionEnabled(false)
     if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       val selectedFile = fileChooser.getSelectedFile
+      lastImportDirectory = selectedFile.getParentFile
       val fileSize = selectedFile.length.asInstanceOf[Int]
       // TODO: normalize filename to 30 characters/Amiga encoding
       var in: FileInputStream = null
@@ -309,6 +321,7 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   private def newFolder {
     currentDir.createDirectory(makeUniqueFolderName)
     tableModel.fireTableDataChanged
+    treeModel.fireTreeStructureChanged
   }
   private def makeUniqueFolderName = {
     "New Directory"

@@ -38,10 +38,11 @@ object DirectoryTableModel {
 class DirectoryTableModel extends AbstractTableModel {
   import DirectoryTableModel._
   
-  var _currentDir: Directory = null
-  def currentDir = _currentDir
+  val view = new DirectoryView
+
+  def currentDir = view.currentDirectory
   def currentDir_=(dir: Directory) {
-    _currentDir = dir
+    view.currentDirectory = dir
     fireTableDataChanged
   }
   
@@ -50,7 +51,7 @@ class DirectoryTableModel extends AbstractTableModel {
   override def isCellEditable(row: Int, column: Int) = column == 0
 
   def getRowCount = {
-    if (_currentDir == null) 0 else _currentDir.list.length
+    if (view.currentDirectory == null) 0 else view.list.length
   }
 
   override def getColumnClass(col: Int): Class[_] = {
@@ -64,12 +65,12 @@ class DirectoryTableModel extends AbstractTableModel {
 
   override def setValueAt(value: Object, row: Int, col: Int) {
     if (col == 0) {
-      _currentDir.list(row).name = value.toString
+      view.list(row).name = value.toString
     }
   }
   def getValueAt(row: Int, col: Int): Object = {
-    if (_currentDir != null) {
-      getValueForColumn(_currentDir.list(row), col)
+    if (view.currentDirectory != null) {
+      getValueForColumn(view.list(row), col)
     } else ""
   }
 

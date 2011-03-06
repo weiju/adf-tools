@@ -38,10 +38,15 @@ class DirectoryTreeModel extends TreeModel {
   def volume = _volume
   def volume_=(aVolume: UserVolume) {
     _volume = aVolume
+    fireTreeStructureChanged
+  }
+
+  def fireTreeStructureChanged {
     val path : Array[Object] = Array(_volume)
     val event = new TreeModelEvent(this, path)
     fireTreeStructureChanged(event)
   }
+
   def fireTreeStructureChanged(event: TreeModelEvent) {
     listeners.foreach(_.treeStructureChanged(event))
   }
