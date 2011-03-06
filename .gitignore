@@ -2,4 +2,4 @@ project/boot
 target
 lib
 lib_managed
-
+*.info

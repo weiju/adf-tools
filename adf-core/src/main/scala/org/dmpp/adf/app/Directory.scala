@@ -205,6 +205,7 @@ extends Directory with ContainsHashtableBlock {
   def blockNumber             = rootBlock.blockNumber
   def name                    = rootBlock.name
   def name_=(newName: String) = rootBlock.name = newName
+  override def isRoot = true
   def comment                 = "(no comment)"
   def hashtableEntries        = rootBlock.hashtableEntries
   def lastModificationTime    = rootBlock.lastModificationTime

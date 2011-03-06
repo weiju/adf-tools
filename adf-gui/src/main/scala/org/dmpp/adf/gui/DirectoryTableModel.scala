@@ -45,7 +45,9 @@ class DirectoryTableModel extends AbstractTableModel {
     view.currentDirectory = dir
     fireTableDataChanged
   }
-  
+
+  def fileAt(index: Int): DosFile = view.list(index)
+
   val Headers = Array("Name", "Size", "Last Modified", "Kind")
 
   override def isCellEditable(row: Int, column: Int) = column == 0

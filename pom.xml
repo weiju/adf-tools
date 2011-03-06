@@ -17,5 +17,7 @@
   <modules>
     <module>adf-core</module>
     <module>adf-gui</module>
+    <module>infolib</module>
+    <module>infoviewer</module>
   </modules>
 </project>

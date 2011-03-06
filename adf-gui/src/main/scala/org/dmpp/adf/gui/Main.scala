@@ -82,11 +82,15 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   val tableModel = new DirectoryTableModel
   val tree = new JTree(treeModel)
   val table = new JTable(tableModel)
-  val splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT)
+  val previewPanel = new PreviewPanel
+  val splitPaneH = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT)
+  val splitPaneV = new JSplitPane(JSplitPane.VERTICAL_SPLIT)
+  splitPaneH.setRightComponent(splitPaneV)
 
-  getContentPane.add(splitPane, BorderLayout.CENTER)
-  splitPane.setPreferredSize(new Dimension(640, 480))
-  splitPane.setDividerSize(3)
+  getContentPane.add(splitPaneH, BorderLayout.CENTER)
+  splitPaneH.setPreferredSize(new Dimension(640, 480))
+  splitPaneH.setDividerSize(3)
+  splitPaneV.setDividerSize(3)
 
   makeLeftPane
   makeRightPane
@@ -97,7 +101,8 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
   addWindowListener(new WindowAdapter {
     override def windowOpened(event: WindowEvent) {
-      splitPane.setDividerLocation(0.3)
+      splitPaneH.setDividerLocation(0.3)
+      splitPaneV.setDividerLocation(0.5)
     }
   })
   pack
@@ -119,7 +124,7 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
         if (!e.getValueIsAdjusting) {
           val selectedRow = table.getSelectedRow
           if (selectedRow >= 0 && selectedRow < tableModel.getRowCount) {
-            handleTableSelection(currentDir.list(selectedRow))
+            handleTableSelection(tableModel.fileAt(selectedRow))
           }
         }
       }
@@ -129,18 +134,20 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   private def handleTableSelection(currentSelection: DosFile) {
     exportItem.setEnabled(currentSelection != null && currentSelection.isFile)
     deleteItem.setEnabled(currentSelection != null)
+    previewPanel.selectedFile = currentSelection
   }
 
   private def makeLeftPane {
     val scrollPane = new JScrollPane(tree)
-    splitPane.setLeftComponent(scrollPane)
+    splitPaneH.setLeftComponent(scrollPane)
   }
 
   private def makeRightPane {
     table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
     val scrollPane = new JScrollPane(table)
     table.getColumnModel.getColumn(0).setCellRenderer(new FileTableCellRenderer)
-    splitPane.setRightComponent(scrollPane)
+    splitPaneV.setTopComponent(scrollPane)
+    splitPaneV.setBottomComponent(previewPanel)
   }
 
   private def makeMenuBar {
@@ -250,6 +257,10 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   private def setCurrentDir(dir: Directory) {
     currentDir = dir
     tableModel.currentDir = dir
+
+    previewPanel.selectedFile = if (dir == null && currentVolume != null) {
+      currentVolume.rootDirectory
+    } else dir
 
     addFileItem.setEnabled(currentDir != null)
     exportItem.setEnabled(false)

@@ -47,6 +47,8 @@ trait DosFile {
    */
   def isFile: Boolean
 
+  def isRoot: Boolean
+
   /**
    * Returns the file name.
    * @return file name
@@ -97,6 +99,7 @@ abstract class AbstractDosFile(val dirEntryBlock: DirectoryEntryBlock) extends D
                                                        dirEntryBlock.name,
                                                        newName)
   }
+  def isRoot = false
   private def parentBlock = logicalVolume.directoryBlockAt(dirEntryBlock.parent)
   def comment                    = dirEntryBlock.comment
   def lastModificationTime       = dirEntryBlock.lastModificationTime

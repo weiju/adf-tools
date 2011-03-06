@@ -33,6 +33,7 @@ Status
 - rename files/directories/disk, move files between directories
 - delete files (non-destructive)
 - can copy files from a disk
+- view icons from .info files
 
 Background
 ----------

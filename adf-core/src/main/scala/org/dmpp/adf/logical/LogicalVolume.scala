@@ -293,6 +293,7 @@ class LogicalVolume(val physicalVolume: PhysicalVolume) {
           val dataBlockNumbers = entry.asInstanceOf[FileHeaderBlock].dataBlockNumbers
           dataBlockNumbers.foreach(freeBlock _)
         }
+        rootBlock.recomputeChecksum
       case _ => throw new DirectoryEntryNotFound
     }
   }
