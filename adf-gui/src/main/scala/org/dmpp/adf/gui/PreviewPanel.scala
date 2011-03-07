@@ -45,46 +45,82 @@ object PreviewPanel {
 class PreviewPanel extends JPanel {
   import PreviewPanel._
 
+  private val infoPanel = new JPanel
+  private val imagePanel = new JPanel(new FlowLayout)
+  private val normalImageLabel = new JLabel("")
+  private val highlightImageLabel = new JLabel("")
+  private var stretchIcons = true
+  private var currentInfoFile: UserFile = null
+  private var currentIcon: AmigaIcon = null
+  private var _currentPalette = Palette13
+
+  def currentPalette = _currentPalette
+  def currentPalette_=(palette: Array[Int]) {
+    _currentPalette = palette
+    rebuildIcons
+  }
+
   setLayout(new BorderLayout)
   setBorder(new TitledBorder(new EtchedBorder, "Preview"))
-  val infoPanel = new JPanel
-  val imagePanel = new JPanel(new FlowLayout)
-  val normalImageLabel = new JLabel("")
-  val highlightImageLabel = new JLabel("")
+
   imagePanel.add(normalImageLabel)
   imagePanel.add(highlightImageLabel)
 
   add(infoPanel, BorderLayout.NORTH)
   add(imagePanel, BorderLayout.CENTER)
 
-  var currentPalette = Palette13
+  def areIconsStretched = stretchIcons
+  def toggleStretchIcons {
+    stretchIcons = !stretchIcons
+    updateImageLabels
+  }
+
   def selectedFile: DosFile = null
   def selectedFile_=(file: DosFile) {
     resetIconImages
     if (file != null) {
-      val infoFile =
+      val infoFileOption =
         if (file.isRoot) file.asInstanceOf[Directory].find("Disk.info")
         else if (file.name.endsWith(".info")) Some(file)
         else file.parentDirectory.find(file.name + ".info")
-
-      if (infoFile != None) setIconImages(infoFile.get.asInstanceOf[UserFile])
+      currentInfoFile = if (infoFileOption == None) null
+                        else infoFileOption.get.asInstanceOf[UserFile]
+      rebuildIcons
     }
+  }
+
+  private def rebuildIcons {
+    if (currentInfoFile != null) setIconImages(currentInfoFile)
   }
 
   private def setIconImages(infoFile: UserFile) {
     try {
       val data = infoFile.dataBytes
       val infoReader = new AmigaInfoReader(currentPalette)
-      val icon = infoReader.createIcon(data)
-      val icon1 = new ImageIcon(icon.normalImage)
-      normalImageLabel.setIcon(icon1)
-      if (icon.highlightImage != None) {
-        val hlIcon = new ImageIcon(icon.highlightImage.get)
-        highlightImageLabel.setIcon(hlIcon)
-      } else {
-        highlightImageLabel.setIcon(null)
-      }
+      currentIcon = infoReader.createIcon(data)
+      updateImageLabels
+    } catch {
+      case e =>
+        currentIcon = null
+        e.printStackTrace
     }
+  }
+
+  private def updateImageLabels {
+    setImageToLabel(currentIcon.normalImage, normalImageLabel)
+    if (currentIcon.highlightImage != None) {
+      setImageToLabel(currentIcon.highlightImage.get, highlightImageLabel)
+    } else {
+      highlightImageLabel.setIcon(null)
+    }
+  }
+
+  private def setImageToLabel(image: Image, label: JLabel) {
+    if (stretchIcons) {
+      label.setIcon(new ImageIcon(image.getScaledInstance(image.getWidth(null),
+                                                          image.getHeight(null) * 2,
+                                                          Image.SCALE_FAST)))
+    } else label.setIcon(new ImageIcon(image))
   }
 
   private def resetIconImages {

@@ -34,6 +34,8 @@ Status
 - delete files (non-destructive)
 - can copy files from a disk
 - view icons from .info files
+- stretch icons to display adapt aspect ratio
+- 1.3 and 2.0 palettes for icon display
 
 Background
 ----------

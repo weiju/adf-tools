@@ -63,7 +63,7 @@ class FileTableCellRenderer extends DefaultTableCellRenderer {
  * official tree component (yet), which is necessary for a file viewer.
  * I just go with plain old Java Swing here.
  */
-class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
+class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
 
   var currentVolume: UserVolume = null
   var currentDir: Directory = null
@@ -72,6 +72,8 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   var addFolderItem: JMenuItem = null
   var exportItem:    JMenuItem = null
   var deleteItem:    JMenuItem = null
+  var palette1xItem: JRadioButtonMenuItem = null
+  var palette2xItem: JRadioButtonMenuItem = null
 
   var statusMessageLabel: JLabel = null
   var lastSaveDirectory: File = null
@@ -220,18 +222,43 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
                                              }
                                            })
     viewMenu.addSeparator
-    val palette1xItem = addCheckBoxMenuItem(viewMenu, "Use 1.x palette", true,
-                                            new ActionListener {
-                                              def actionPerformed(e: ActionEvent) { }
-                                            })
-    val palette2xItem = addCheckBoxMenuItem(viewMenu, "Use 2.x palette", false,
-                                            new ActionListener {
-                                              def actionPerformed(e: ActionEvent) { }
-                                            })
+    val paletteGroup = new ButtonGroup
+    palette1xItem = addRadioButtonMenuItem(viewMenu, "Use 1.x palette", true,
+                                           paletteGroup,
+                                           new ActionListener {
+                                             def actionPerformed(e: ActionEvent) {
+                                               handlePaletteSelection
+                                             }
+                                           })
+    palette2xItem = addRadioButtonMenuItem(viewMenu, "Use 2.x palette", false,
+                                           paletteGroup,
+                                           new ActionListener {
+                                             def actionPerformed(e: ActionEvent) {
+                                               handlePaletteSelection
+                                             }
+                                           })
     val stretchIconsItem = addCheckBoxMenuItem(viewMenu, "Stretch icons", true,
                                                new ActionListener {
-                                                 def actionPerformed(e: ActionEvent) { }
-                                               })
+                                                 def actionPerformed(e: ActionEvent) {
+                                                   previewPanel.toggleStretchIcons
+                                                 }
+                                               })    
+  }
+
+  private def handlePaletteSelection {
+    ensurePaletteIsSelected
+    if (palette1xItem.isSelected) {
+      previewPanel.currentPalette = PreviewPanel.Palette13
+    } else {
+      previewPanel.currentPalette = PreviewPanel.Palette20
+    }
+  }
+
+  private def ensurePaletteIsSelected {
+    if (!palette1xItem.isSelected && !palette2xItem.isSelected) {
+      println("all deselected !!")
+      palette1xItem.setSelected(true)
+    }
   }
 
   private def makeStatusBar {
@@ -249,10 +276,19 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
     item
   }
   private def addCheckBoxMenuItem(menu: JMenu, caption: String, checked: Boolean,
-                          listener: ActionListener): JMenuItem = {
+                          listener: ActionListener) = {
     val item = new JCheckBoxMenuItem(caption, checked)
     item.addActionListener(listener)
     menu.add(item)
+    item
+  }
+  private def addRadioButtonMenuItem(menu: JMenu, caption: String, checked: Boolean,
+                                     buttonGroup: ButtonGroup,
+                                     listener: ActionListener) = {
+    val item = new JRadioButtonMenuItem(caption, checked)
+    item.addActionListener(listener)
+    menu.add(item)
+    buttonGroup.add(item)
     item
   }
 
@@ -394,7 +430,7 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
 object Main {
   def main(args: Array[String]) {
     System.setProperty("apple.laf.useScreenMenuBar", "true")
-    System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Opus@Scala")
+    System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Arr!Jay")
     val frame = new AdfToolsFrame
     frame.setVisible(true)
   }
