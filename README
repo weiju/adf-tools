@@ -13,10 +13,16 @@ a couple of ADF files for testing on UAE.
 
 Usage
 -----
-You can simply download the latest version of the adf-browser jar
-from github and start it with
+You can simply download the latest version of the Arr!Jay jar
+from the project's download section. You will need at least a
+Java Runtime system >= 1.5 (1.6 recommended).
+
+On most systems, a double click on the jar file's icon should
+work. Alternatively, the browser can be started with
 
 java -jar arrjay-<date>.jar
+
+from the command line.
 
 Building
 --------
