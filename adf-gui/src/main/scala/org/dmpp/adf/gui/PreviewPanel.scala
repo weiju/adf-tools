@@ -58,34 +58,37 @@ class PreviewPanel extends JPanel {
   add(imagePanel, BorderLayout.CENTER)
 
   var currentPalette = Palette13
-
   def selectedFile: DosFile = null
   def selectedFile_=(file: DosFile) {
-    if (file == null) {
-      normalImageLabel.setIcon(null)
-      highlightImageLabel.setIcon(null)
-    } else {
-      val infoFile = if (file.isRoot) {
-        file.asInstanceOf[Directory].find("Disk.info")
+    resetIconImages
+    if (file != null) {
+      val infoFile =
+        if (file.isRoot) file.asInstanceOf[Directory].find("Disk.info")
+        else if (file.name.endsWith(".info")) Some(file)
+        else file.parentDirectory.find(file.name + ".info")
+
+      if (infoFile != None) setIconImages(infoFile.get.asInstanceOf[UserFile])
+    }
+  }
+
+  private def setIconImages(infoFile: UserFile) {
+    try {
+      val data = infoFile.dataBytes
+      val infoReader = new AmigaInfoReader(currentPalette)
+      val icon = infoReader.createIcon(data)
+      val icon1 = new ImageIcon(icon.normalImage)
+      normalImageLabel.setIcon(icon1)
+      if (icon.highlightImage != None) {
+        val hlIcon = new ImageIcon(icon.highlightImage.get)
+        highlightImageLabel.setIcon(hlIcon)
       } else {
-        file.parentDirectory.find(file.name + ".info")
-      }
-      if (infoFile != None) {
-        val data = infoFile.get.asInstanceOf[UserFile].dataBytes
-        val infoReader = new AmigaInfoReader(currentPalette)
-        val icon = infoReader.createIcon(data)
-        val icon1 = new ImageIcon(icon.normalImage)
-        normalImageLabel.setIcon(icon1)
-        if (icon.highlightImage != None) {
-          val hlIcon = new ImageIcon(icon.highlightImage.get)
-          highlightImageLabel.setIcon(hlIcon)
-        } else {
-          highlightImageLabel.setIcon(null)
-        }
-      } else {
-        normalImageLabel.setIcon(null)
         highlightImageLabel.setIcon(null)
       }
     }
+  }
+
+  private def resetIconImages {
+    normalImageLabel.setIcon(null)
+    highlightImageLabel.setIcon(null)
   }
 }

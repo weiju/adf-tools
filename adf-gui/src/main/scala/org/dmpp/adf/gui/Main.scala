@@ -79,7 +79,7 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   var lastImportDirectory: File = null
 
   val treeModel = new DirectoryTreeModel
-  val tableModel = new DirectoryTableModel
+  val tableModel = new DirectoryTableModel(this)
   val tree = new JTree(treeModel)
   val table = new JTable(tableModel)
   val previewPanel = new PreviewPanel
@@ -152,10 +152,15 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
 
   private def makeMenuBar {
     val menubar = new JMenuBar
+    setJMenuBar(menubar)
+    makeFileMenu(menubar)
+    makeEditMenu(menubar)
+    makeViewMenu(menubar)
+  }
+
+  private def makeFileMenu(menubar: JMenuBar) {
     val fileMenu = new JMenu("File")
-    val editMenu = new JMenu("Edit")
     menubar.add(fileMenu)
-    menubar.add(editMenu)
 
     addMenuItem(fileMenu, "New Volume",
                 new ActionListener {
@@ -188,17 +193,45 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
                   })
     }
 
-    deleteItem = addMenuItem(editMenu, "Delete",
-                             new ActionListener {
-                               def actionPerformed(e: ActionEvent) = deleteSelected
-                             })
     saveAsItem.setEnabled(false)
     addFileItem.setEnabled(false)
     exportItem.setEnabled(false)
     addFolderItem.setEnabled(false)
-    deleteItem.setEnabled(false)
-    
-    setJMenuBar(menubar)
+  }
+
+  private def makeEditMenu(menubar: JMenuBar) {
+    val editMenu = new JMenu("Edit")
+    menubar.add(editMenu)
+    deleteItem = addMenuItem(editMenu, "Delete",
+                             new ActionListener {
+                               def actionPerformed(e: ActionEvent) = deleteSelected
+                             })
+    deleteItem.setEnabled(false)    
+  }
+
+  private def makeViewMenu(menubar: JMenuBar) {
+    val viewMenu = new JMenu("View")
+    menubar.add(viewMenu)
+    val hideInfoItem = addCheckBoxMenuItem(viewMenu, "Hide .info files",
+                                           tableModel.hideInfoFiles,
+                                           new ActionListener {
+                                             def actionPerformed(e: ActionEvent) {
+                                               tableModel.toggleHideInfoFiles
+                                             }
+                                           })
+    viewMenu.addSeparator
+    val palette1xItem = addCheckBoxMenuItem(viewMenu, "Use 1.x palette", true,
+                                            new ActionListener {
+                                              def actionPerformed(e: ActionEvent) { }
+                                            })
+    val palette2xItem = addCheckBoxMenuItem(viewMenu, "Use 2.x palette", false,
+                                            new ActionListener {
+                                              def actionPerformed(e: ActionEvent) { }
+                                            })
+    val stretchIconsItem = addCheckBoxMenuItem(viewMenu, "Stretch icons", true,
+                                               new ActionListener {
+                                                 def actionPerformed(e: ActionEvent) { }
+                                               })
   }
 
   private def makeStatusBar {
@@ -211,6 +244,13 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
   private def addMenuItem(menu: JMenu, caption: String,
                           listener: ActionListener): JMenuItem = {
     val item = new JMenuItem(caption)
+    item.addActionListener(listener)
+    menu.add(item)
+    item
+  }
+  private def addCheckBoxMenuItem(menu: JMenu, caption: String, checked: Boolean,
+                          listener: ActionListener): JMenuItem = {
+    val item = new JCheckBoxMenuItem(caption, checked)
     item.addActionListener(listener)
     menu.add(item)
     item
@@ -230,7 +270,6 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
     }
   }
   private def newFfsVolume {
-    //setCurrentVolume(UserVolumeFactory.createEmptyDoubleDensityDisk())
     setCurrentVolume(UserVolumeFactory.createEmptyDoubleDensityDisk("Empty", "OFS"))
   }
   private def setCurrentVolume(volume: UserVolume) {
@@ -239,7 +278,6 @@ class AdfToolsFrame extends JFrame("Opus@Scala 1.0 beta") {
     setCurrentDir(null)
 
     saveAsItem.setEnabled(currentVolume != null)
-    //tree.setEditable(currentVolume != null)
     updateStatusbar
   }
 

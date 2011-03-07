@@ -27,7 +27,9 @@
  */
 package org.dmpp.adf.gui
 
+import javax.swing._
 import javax.swing.table._
+import org.dmpp.adf.logical.HeaderBlock
 import org.dmpp.adf.app._
 import java.text.SimpleDateFormat
 
@@ -35,7 +37,7 @@ object DirectoryTableModel {
   val DateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm")
 }
 
-class DirectoryTableModel extends AbstractTableModel {
+class DirectoryTableModel(frame: JFrame) extends AbstractTableModel {
   import DirectoryTableModel._
   
   val view = new DirectoryView
@@ -43,6 +45,11 @@ class DirectoryTableModel extends AbstractTableModel {
   def currentDir = view.currentDirectory
   def currentDir_=(dir: Directory) {
     view.currentDirectory = dir
+    fireTableDataChanged
+  }
+  def hideInfoFiles = view.hideInfoFiles
+  def toggleHideInfoFiles {
+    view.hideInfoFiles = !view.hideInfoFiles
     fireTableDataChanged
   }
 
@@ -67,7 +74,15 @@ class DirectoryTableModel extends AbstractTableModel {
 
   override def setValueAt(value: Object, row: Int, col: Int) {
     if (col == 0) {
-      view.list(row).name = value.toString
+      val newName = value.toString
+      if (newName.length > HeaderBlock.NameMaxChars) {
+        JOptionPane.showMessageDialog(frame,
+                                      "File name length must not exceed 30 characters",
+                                      "Input error",
+                                      JOptionPane.ERROR_MESSAGE)
+      } else {
+        view.list(row).name = value.toString
+      }
     }
   }
   def getValueAt(row: Int, col: Int): Object = {
