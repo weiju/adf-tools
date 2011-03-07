@@ -16,7 +16,7 @@ Usage
 You can simply download the latest version of the adf-browser jar
 from github and start it with
 
-java -jar adf-browser-<date>.jar
+java -jar arrjay-<date>.jar
 
 Building
 --------
