@@ -199,6 +199,9 @@ class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
     addFileItem.setEnabled(false)
     exportItem.setEnabled(false)
     addFolderItem.setEnabled(false)
+    if (isMacOsX) {
+      //new MacOSAboutHandler
+    }
   }
 
   private def makeEditMenu(menubar: JMenuBar) {
@@ -301,13 +304,20 @@ class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
     fileChooser.setDialogTitle("Open ADF file...")
     fileChooser.setMultiSelectionEnabled(false)
     if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-      lastOpenDirectory = fileChooser.getSelectedFile.getParentFile
-      setCurrentVolume(UserVolumeFactory.readFromFile(fileChooser.getSelectedFile))
+      val selectedFile = fileChooser.getSelectedFile
+      lastOpenDirectory = selectedFile.getParentFile
+      val userVolume = UserVolumeFactory.readFromFile(selectedFile)
+      if (!userVolume.isValid) {
+        reportError("Invalid File", 
+                    "File '%s' is not a valid Amiga DOS image.".format(selectedFile.getName))
+      } else setCurrentVolume(userVolume)
     }
   }
+
   private def newFfsVolume {
     setCurrentVolume(UserVolumeFactory.createEmptyDoubleDensityDisk("Empty", "OFS"))
   }
+
   private def setCurrentVolume(volume: UserVolume) {
     currentVolume         = volume
     treeModel.volume      = currentVolume
@@ -424,6 +434,10 @@ class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
                                          " ?").format(file.name),
                                   "Overwrite existing file",
                                   JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
+  }
+
+  private def reportError(title: String, message: String) {
+    JOptionPane.showMessageDialog(this, message, title, JOptionPane.ERROR_MESSAGE)
   }
 }
 

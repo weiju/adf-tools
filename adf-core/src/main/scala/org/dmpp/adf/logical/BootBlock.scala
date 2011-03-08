@@ -70,7 +70,9 @@ class BootBlock(logicalVolume: LogicalVolume) extends HasChecksum with BitHelper
     else if (isInternational) fsFlags += 2
     physicalVolume(3) = fsFlags.asInstanceOf[Byte]
   }
-
+  def isDosDisk = {
+    (physicalVolume(0) == 'D') && (physicalVolume(1) == 'O') && (physicalVolume(2) == 'S')
+  }
   def filesystemType  = if (flagClear(flags, FlagFFS)) "OFS" else "FFS"
   def isInternational = flagSet(flags, FlagIntlOnly) ||
   flagSet(flags, FlagDirCacheAndIntl)

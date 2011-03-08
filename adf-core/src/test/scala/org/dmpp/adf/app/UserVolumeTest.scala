@@ -53,11 +53,18 @@ object UserVolumeSpec extends Specification {
       emptyDiskOFS = UserVolumeFactory.createEmptyDoubleDensityDisk("OFSEmpty", "OFS")
     }
 
+    "new disk must be valid dos disk" in {
+      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
+      empty.isValid must beTrue
+    }
     "new disk must have recent creation date" in {
       val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
       recent(empty.creationTime) must beTrue
       recent(empty.rootDirectory.lastModificationTime) must beTrue
       recent(empty.lastModificationTime) must beTrue
+    }
+    "workbench disk must be valid dos disk" in {
+      workbenchDisk.isValid must beTrue
     }
     "read workbench root directory" in {
       workbenchDisk.name must_== "Workbench1.3"

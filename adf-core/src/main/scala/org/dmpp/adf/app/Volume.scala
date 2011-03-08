@@ -74,6 +74,11 @@ object UserVolumeFactory {
  * @param logicalVolume a LogicalVolume instance
  */
 class UserVolume(val logicalVolume: LogicalVolume) {
+
+  def isValid = {
+    logicalVolume.bootBlock.isDosDisk && logicalVolume.rootBlock.checksumIsValid
+  }
+
   /**
    * Return this volume's name.
    * @return this volume's name

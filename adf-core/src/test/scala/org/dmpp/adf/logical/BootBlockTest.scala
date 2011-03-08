@@ -47,10 +47,12 @@ object BootBlockSpec extends Specification {
     }
 
     "boot block is initialized" in {
+      bootBlockOFS.isDosDisk must beTrue
       bootBlockOFS.filesystemType must_== "OFS"
       bootBlockOFS.isInternational must beFalse
       bootBlockOFS.useDirCache must beFalse
 
+      bootBlockFFS.isDosDisk must beTrue
       bootBlockFFS.filesystemType must_== "FFS"
       bootBlockFFS.isInternational must beFalse
       bootBlockFFS.useDirCache must beFalse
