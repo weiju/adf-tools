@@ -145,6 +145,7 @@ class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
   }
 
   private def makeRightPane {
+    table.setDragEnabled(true)
     table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
     val scrollPane = new JScrollPane(table)
     table.getColumnModel.getColumn(0).setCellRenderer(new FileTableCellRenderer)

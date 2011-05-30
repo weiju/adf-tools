@@ -28,57 +28,56 @@
 package org.dmpp.adf.logical
 
 import java.util.Date
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-class RootBlockTest extends JUnit4(RootBlockSpec)
-object RootBlockSpecRunner extends ConsoleRunner(RootBlockSpec)
-
-object RootBlockSpec extends Specification {
+@RunWith(classOf[JUnitRunner])
+class RootBlockSpec extends FlatSpec with ShouldMatchers with BeforeAndAfterEach {
   var emptyVolume : LogicalVolume = null
   def rootBlock = emptyVolume.rootBlock
 
-  "RootBlock" should {
-    doBefore {
-      emptyVolume = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk")
-    }
+  override def beforeEach {
+    emptyVolume = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk")
+  }
 
-    "be inititialized with meaningful values" in {
-      rootBlock.primaryType     must_== BlockType.PtShort
-      rootBlock.secondaryType   must_== BlockType.StRoot
-      rootBlock.headerKey       must_== 0
-      rootBlock.highSeq         must_== 0
-      rootBlock.hashtableSize   must_== 0x48 // = 72
-      rootBlock.firstData       must_== 0
-      rootBlock.bitmapIsValid   must beTrue
-      rootBlock.name            must_== "TestDisk"
-      rootBlock.storedChecksum  must_== rootBlock.computedChecksum
-      rootBlock.checksumIsValid must beTrue
-      recent(rootBlock.lastModificationTime)     must beTrue
-      recent(rootBlock.diskLastModificationTime) must beTrue
-      recent(rootBlock.creationTime)             must beTrue
-    }
+  "RootBlock" should "be inititialized with meaningful values" in {
+    rootBlock.primaryType                      should be (BlockType.PtShort)
+    rootBlock.secondaryType                    should be (BlockType.StRoot)
+    rootBlock.headerKey                        should be === (0)
+    rootBlock.highSeq                          should be === (0)
+    rootBlock.hashtableSize                    should be === (0x48) // = 72
+    rootBlock.firstData                        should be === (0)
+    rootBlock.bitmapIsValid                    should be (true)
+    rootBlock.name                             should be ("TestDisk")
+    rootBlock.storedChecksum                   should be === (rootBlock.computedChecksum)
+    rootBlock.checksumIsValid                  should be (true)
+    recent(rootBlock.lastModificationTime)     should be (true)
+    recent(rootBlock.diskLastModificationTime) should be (true)
+    recent(rootBlock.creationTime)             should be (true)
+  }
 
-    "root block can be renamed" in {
-      rootBlock.name = "NewDisk"
-      rootBlock.name must_== "NewDisk"
-      rootBlock.checksumIsValid must beTrue
-      recent(rootBlock.lastModificationTime) must beTrue
-    }
+  it should "rename the root block" in {
+    rootBlock.name = "NewDisk"
+    rootBlock.name                         should be ("NewDisk")
+    rootBlock.checksumIsValid              should be (true)
+    recent(rootBlock.lastModificationTime) should be (true)
+  }
 
-    "update disk modification time" in {
-      val previousTime = rootBlock.diskLastModificationTime      
-      Thread.sleep(500) // waste some time
-      rootBlock.updateDiskLastModificationTime
-      (rootBlock.diskLastModificationTime.getTime - previousTime.getTime) must
-        beGreaterThan(0l)
-      rootBlock.checksumIsValid must beTrue
-    }
+  it should "update disk modification time" in {
+    val previousTime = rootBlock.diskLastModificationTime      
+    Thread.sleep(500) // waste some time
+    rootBlock.updateDiskLastModificationTime
+    (rootBlock.diskLastModificationTime.getTime - previousTime.getTime) should be > (0l)
+    rootBlock.checksumIsValid should be (true)
+  }
 
-    "throw an error when renaming with too long name" in {
-      (rootBlock.name = "this is a ridiculously long disk name with error") must throwA[IllegalArgumentException]
-    }
-
+  it should "throw an error when renaming with too long name" in {
+    evaluating {
+      (rootBlock.name = "this is a ridiculously long disk name with error")
+    } should produce [IllegalArgumentException]
   }
 
   def recent(date: Date): Boolean = {

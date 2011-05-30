@@ -27,8 +27,11 @@
  */
 package org.dmpp.adf.logical
 
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 import java.io._
 import java.util.Date
@@ -38,186 +41,179 @@ import org.dmpp.adf.physical._
 /**
  * Test cases for logical volumes.
  */
-
-class LogicalVolumeTest extends JUnit4(LogicalVolumeSpec)
-object LogicalVolumeSpecRunner extends ConsoleRunner(LogicalVolumeSpec)
-
-object LogicalVolumeSpec extends Specification {
+@RunWith(classOf[JUnitRunner])
+class LogicalVolumeSpec extends FlatSpec with ShouldMatchers with BeforeAndAfterEach {
 
   var emptyOFS: LogicalVolume = null
   var emptyFFS: LogicalVolume = null
 
-  "LogicalVolume" should {
+  override def beforeEach {
+    emptyFFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("Empty", "FFS")
+    emptyOFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("Empty", "OFS")
+  }
 
-    doBefore {
-      emptyFFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("Empty", "FFS")
-      emptyOFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("Empty", "OFS")
-    }
-    "be empty initialized" in {
-      checkForValidBootBlock(emptyFFS)
-      emptyFFS.numUsedBlocks must_== 2
-      emptyFFS.allocate(880) must throwA[BlockAlreadyAllocated]
-      emptyFFS.allocate(881) must throwA[BlockAlreadyAllocated]
-      emptyFFS.name must_== "Empty"
-      emptyFFS.bootBlock.filesystemType must_== "FFS"
-    }
-    def checkForValidBootBlock(volume: LogicalVolume) {
-      volume.sizeInBytes must_== DoubleDensityDisk.ImageSize
-      volume(0).asInstanceOf[Char] must_== 'D'
-      volume(1).asInstanceOf[Char] must_== 'O'
-      volume(2).asInstanceOf[Char] must_== 'S'
-      for (i <- 4 until 1024) volume(i) must_== 0
-    }
+  "LogicalVolume" should "be empty initialized" in {
+    checkForValidBootBlock(emptyFFS)
+    emptyFFS.numUsedBlocks should be === (2)
+    evaluating { emptyFFS.allocate(880) } should produce [BlockAlreadyAllocated]
+    evaluating { emptyFFS.allocate(881) } should produce [BlockAlreadyAllocated]
+    emptyFFS.name should be ("Empty")
+    emptyFFS.bootBlock.filesystemType should be ("FFS")
+  }
+  def checkForValidBootBlock(volume: LogicalVolume) {
+    volume.sizeInBytes           should be === (DoubleDensityDisk.ImageSize)
+    volume(0).asInstanceOf[Char] should be === ('D')
+    volume(1).asInstanceOf[Char] should be === ('O')
+    volume(2).asInstanceOf[Char] should be === ('S')
+    for (i <- 4 until 1024) volume(i) should be === (0)
+  }
 
-    // bitmap blocks
-    "have valid bitmap blocks" in {
-      emptyFFS.rootBlock.bitmapBlocks.length must_== 1
-      val bitmapBlock = emptyFFS.rootBlock.bitmapBlocks.head
-      bitmapBlock.blockNumber must_== 881
-      bitmapBlock.checksumIsValid must beTrue
-      emptyFFS.numFreeBlocks must_== 1756
-      emptyFFS.numUsedBlocks must_== 2
-    }
+  // bitmap blocks
+  it should "have valid bitmap blocks" in {
+    emptyFFS.rootBlock.bitmapBlocks.length should be === (1)
+    val bitmapBlock = emptyFFS.rootBlock.bitmapBlocks.head
+    bitmapBlock.blockNumber should be === (881)
+    bitmapBlock.checksumIsValid should be (true)
+    emptyFFS.numFreeBlocks should be === (1756)
+    emptyFFS.numUsedBlocks should be === (2)
+  }
 
-    "allocate a block on an empty disk" in {
-      emptyFFS.allocate must_== 882
-    }
-    "allocate a block where the blocks after 880 are all full" in {
-      for (block <- 882 until 1760) emptyFFS.allocate(block)
-      emptyFFS.allocate must_== 2
-    }
-    "allocate a block on a full volume" in {
-      val full = emptyFFS
-      for (block <- 882 until 1760) full.allocate(block)
-      for (block <- 2 until 880) full.allocate(block)
-      full.allocate must throwA[DeviceIsFull]
-    }
-    "allocate block 885 on an empty disk" in {
-      emptyFFS.numFreeBlocks must_== 1756
-      emptyFFS.allocate(882)
-      emptyFFS.allocate(883)
-      emptyFFS.allocate(884)
-      emptyFFS.allocate(885)
-      emptyFFS.numFreeBlocks must_== 1752
-    }
-    "create a user directory block" in {
-      val rootBlock = emptyFFS.rootBlock
-      val dirblock = emptyFFS.createUserDirectoryBlockIn(rootBlock, "mydir")
-      dirblock.primaryType   must_== BlockType.PtShort
-      dirblock.isDirectory must beTrue
-      dirblock.headerKey must_== 882
-      dirblock.parent must_== 880
-      dirblock.name must_== "mydir"
-      dirblock.checksumIsValid must beTrue
-      recent(dirblock.lastModificationTime) must beTrue
+  it should "allocate a block on an empty disk" in {
+    emptyFFS.allocate should be === (882)
+  }
+  it should "allocate a block where the blocks after 880 are all full" in {
+    for (block <- 882 until 1760) emptyFFS.allocate(block)
+    emptyFFS.allocate should be === (2)
+  }
+  it should "allocate a block on a full volume" in {
+    val full = emptyFFS
+    for (block <- 882 until 1760) full.allocate(block)
+    for (block <- 2 until 880) full.allocate(block)
+    evaluating { full.allocate } should produce [DeviceIsFull]
+  }
+  it should "allocate block 885 on an empty disk" in {
+    emptyFFS.numFreeBlocks should be === (1756)
+    emptyFFS.allocate(882)
+    emptyFFS.allocate(883)
+    emptyFFS.allocate(884)
+    emptyFFS.allocate(885)
+    emptyFFS.numFreeBlocks should be === (1752)
+  }
+  it should "create a user directory block" in {
+    val rootBlock = emptyFFS.rootBlock
+    val dirblock = emptyFFS.createUserDirectoryBlockIn(rootBlock, "mydir")
+    dirblock.primaryType   should be === (BlockType.PtShort)
+    dirblock.isDirectory   should be (true)
+    dirblock.headerKey     should be === (882)
+    dirblock.parent        should be === (880)
+    dirblock.name          should be ("mydir")
+    dirblock.checksumIsValid should be (true)
+    recent(dirblock.lastModificationTime) should be (true)
+    
+    rootBlock.checksumIsValid should be (true)
+    rootBlock.blockNumberForName("mydir") should be === (882)
+    recent(rootBlock.lastModificationTime) should be (true)
+  }
+  it should "create two nested directories" in {
+    val numFreeBlocks0 = emptyFFS.numFreeBlocks
+    val dirblock1 = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "dir1")
+    val dirblock2 = emptyFFS.createUserDirectoryBlockIn(dirblock1, "dir2")
 
-      rootBlock.checksumIsValid must beTrue
-      rootBlock.blockNumberForName("mydir") must_== 882
-      recent(rootBlock.lastModificationTime) must beTrue
-    }
-    "create two nested directories" in {
-      val numFreeBlocks0 = emptyFFS.numFreeBlocks
-      val dirblock1 = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "dir1")
-      val dirblock2 = emptyFFS.createUserDirectoryBlockIn(dirblock1, "dir2")
-      (numFreeBlocks0 - emptyFFS.numFreeBlocks) must_== 2
-      emptyFFS.isAllocated(dirblock1.blockNumber) must beTrue
-      emptyFFS.isAllocated(dirblock2.blockNumber) must beTrue
-      dirblock1.blockForName("dir2") must_!= None
-    }
+    (numFreeBlocks0 - emptyFFS.numFreeBlocks) should be === (2)
+    emptyFFS.isAllocated(dirblock1.blockNumber) should be (true)
+    emptyFFS.isAllocated(dirblock2.blockNumber) should be (true)
+    dirblock1.blockForName("dir2") should not be (None)
+  }
 
-    "allocate an FFS data block" in {
-      val header = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
-      val block = emptyFFS.allocateDataBlock(header, 1, 42)
-      block.maxDataBytes must_== 512
-      block.isOFS must beFalse
-      block.isFFS must beTrue
-    }
-    "allocate an OFS data block" in {
-      val header = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
-      val block = emptyOFS.allocateDataBlock(header, 1, 42)
-      block.maxDataBytes must_== (512 - 24)
-      block.isOFS must beTrue
-      block.isFFS must beFalse
-      val ofsblock = block.asInstanceOf[OfsDataBlock]
-      ofsblock.primaryType must_== BlockType.PtData
-      ofsblock.headerKey must_== 882
-      ofsblock.seqNum must_== 1
-      ofsblock.dataSize must_== 42
-    }
+  it should "allocate an FFS data block" in {
+    val header = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
+    val block = emptyFFS.allocateDataBlock(header, 1, 42)
+    block.maxDataBytes should be === (512)
+    block.isOFS should be (false)
+    block.isFFS should be (true)
+  }
+  it should "allocate an OFS data block" in {
+    val header = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
+    val block = emptyOFS.allocateDataBlock(header, 1, 42)
+    block.maxDataBytes should be === (512 - 24)
+    block.isOFS should be (true)
+    block.isFFS should be (false)
+    val ofsblock = block.asInstanceOf[OfsDataBlock]
+    ofsblock.primaryType should be (BlockType.PtData)
+    ofsblock.headerKey   should be === (882)
+    ofsblock.seqNum      should be === (1)
+    ofsblock.dataSize    should be === (42)
+  }
 
-    "renames a non-existing directory" in {
-      val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
-      emptyFFS.renameDirectoryEntryIn(emptyFFS.rootBlock, "nonexisting", "foo") must
-        throwA[DirectoryEntryNotFound]
-    }
-    "renames an existing directory" in {
-      val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
-      val dirblock2 =
-        emptyFFS.renameDirectoryEntryIn(emptyFFS.rootBlock, "mydir", "mydir2")
-      dirblock2.name must_== "mydir2"
-      emptyFFS.rootBlock.blockForName("mydir") must_== None
-      emptyFFS.rootBlock.blockForName("mydir2") must_!= None
-      dirblock2.checksumIsValid must beTrue
-      emptyFFS.allocate(dirblock.blockNumber) must throwA[BlockAlreadyAllocated]
+  it should "rename a non-existing directory" in {
+    val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
+    evaluating {
+      emptyFFS.renameDirectoryEntryIn(emptyFFS.rootBlock, "nonexisting", "foo")
+    } should produce [DirectoryEntryNotFound]
+  }
+  it should "rename an existing directory" in {
+    val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
+    val dirblock2 =
+      emptyFFS.renameDirectoryEntryIn(emptyFFS.rootBlock, "mydir", "mydir2")
+    dirblock2.name should be ("mydir2")
+    emptyFFS.rootBlock.blockForName("mydir")  should be (None)
+    emptyFFS.rootBlock.blockForName("mydir2") should not be (None)
+    dirblock2.checksumIsValid should be (true)
+    evaluating { emptyFFS.allocate(dirblock.blockNumber) } should produce [BlockAlreadyAllocated]
+    validRootBlock(emptyFFS.rootBlock) should be (true)
+  }
+  it should "remove a non-existing directory" in {
+    evaluating {
+      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "nonexist")
+    } should produce [DirectoryEntryNotFound]
+  }
+  it should "remove an existing empty directory" in {
+    val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
+    val oldNumFreeBlocks = emptyFFS.numFreeBlocks
+    emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "mydir")
+    emptyFFS.rootBlock.blockForName("mydir") should be (None)
+    (emptyFFS.numFreeBlocks == oldNumFreeBlocks + 1) should be (true)
+    emptyFFS.isAllocated(dirblock.blockNumber) should be (false)
+    validRootBlock(emptyFFS.rootBlock) should be (true)
+  }
+  it should "remove an existing file" in {
+    val numFreeBlocks0 = emptyFFS.numFreeBlocks
+    val fileHeader = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
+    val dataBlock = emptyFFS.allocateDataBlock(fileHeader, 1, 356)
+    fileHeader.setDataBlocks(356, List(dataBlock))
+    emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "myfile")
 
-      validRootBlock(emptyFFS.rootBlock) must beTrue
-    }
-    "remove a non-existing directory" in {
-      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "nonexist") must
-        throwA[DirectoryEntryNotFound]
-    }
-    "remove an existing empty directory" in {
-      val dirblock = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "mydir")
-      val oldNumFreeBlocks = emptyFFS.numFreeBlocks
-      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "mydir")
-      emptyFFS.rootBlock.blockForName("mydir") must_== None
-      (emptyFFS.numFreeBlocks == oldNumFreeBlocks + 1) must beTrue
-      emptyFFS.isAllocated(dirblock.blockNumber) must beFalse
+    emptyFFS.rootBlock.blockForName("myfile") should be (None)
+    emptyFFS.numFreeBlocks should be === (numFreeBlocks0)
+    emptyFFS.isAllocated(fileHeader.blockNumber) should be (false)
+    emptyFFS.isAllocated(dataBlock.blockNumber)  should be (false)
+    validRootBlock(emptyFFS.rootBlock)           should be (true)
+  }
 
-      validRootBlock(emptyFFS.rootBlock) must beTrue
-    }
-    "remove an existing file" in {
-      val numFreeBlocks0 = emptyFFS.numFreeBlocks
-      val fileHeader = emptyFFS.createFileHeaderBlockIn(emptyFFS.rootBlock, "myfile")
-      val dataBlock = emptyFFS.allocateDataBlock(fileHeader, 1, 356)
-      fileHeader.setDataBlocks(356, List(dataBlock))
-      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "myfile")
+  it should "remove two nested directories" in {
+    val numFreeBlocks0 = emptyFFS.numFreeBlocks
+    val dirblock1 = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "dir1")
+    val dirblock2 = emptyFFS.createUserDirectoryBlockIn(dirblock1, "dir2")
+    emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "dir1")
 
-      emptyFFS.rootBlock.blockForName("myfile") must_== None
-      emptyFFS.numFreeBlocks must_== numFreeBlocks0
-      emptyFFS.isAllocated(fileHeader.blockNumber) must beFalse
-      emptyFFS.isAllocated(dataBlock.blockNumber) must beFalse
+    emptyFFS.numFreeBlocks should be === (numFreeBlocks0)
+    emptyFFS.isAllocated(dirblock1.blockNumber) should be (false)
+    emptyFFS.isAllocated(dirblock2.blockNumber) should be (false)
+    emptyFFS.rootBlock.blockForName("dir1")     should be (None)    
+    validRootBlock(emptyFFS.rootBlock)          should be (true)
+  }
 
-      validRootBlock(emptyFFS.rootBlock) must beTrue
-    }
+  it should "move a directory to a different one" in {
+    val rootBlock = emptyFFS.rootBlock
+    val destdir = emptyFFS.createUserDirectoryBlockIn(rootBlock, "destdir")
+    val dirblock = emptyFFS.createUserDirectoryBlockIn(rootBlock, "dir")
+    emptyFFS.moveDirectoryEntryTo(dirblock, destdir)
 
-    "remove two nested directories" in {
-      val numFreeBlocks0 = emptyFFS.numFreeBlocks
-      val dirblock1 = emptyFFS.createUserDirectoryBlockIn(emptyFFS.rootBlock, "dir1")
-      val dirblock2 = emptyFFS.createUserDirectoryBlockIn(dirblock1, "dir2")
-      emptyFFS.removeDirectoryEntryFrom(emptyFFS.rootBlock, "dir1")
-
-      emptyFFS.numFreeBlocks must_== numFreeBlocks0
-      emptyFFS.isAllocated(dirblock1.blockNumber) must beFalse
-      emptyFFS.isAllocated(dirblock2.blockNumber) must beFalse
-      emptyFFS.rootBlock.blockForName("dir1") must_== None
-
-      validRootBlock(emptyFFS.rootBlock) must beTrue
-    }
-
-    "move a directory to a different one" in {
-      val rootBlock = emptyFFS.rootBlock
-      val destdir = emptyFFS.createUserDirectoryBlockIn(rootBlock, "destdir")
-      val dirblock = emptyFFS.createUserDirectoryBlockIn(rootBlock, "dir")
-      emptyFFS.moveDirectoryEntryTo(dirblock, destdir)
-
-      rootBlock.blockForName("dir") must_== None
-      destdir.blockForName("dir") must_!= None
-
-      validDirectoryBlock(destdir) must beTrue
-      validDirectoryBlock(dirblock) must beTrue
-      validRootBlock(emptyFFS.rootBlock) must beTrue
-    }
+    rootBlock.blockForName("dir") should be (None)
+    destdir.blockForName("dir")   should not be (None)
+    validDirectoryBlock(destdir)  should be (true)
+    validDirectoryBlock(dirblock) should be (true)
+    validRootBlock(emptyFFS.rootBlock) should be (true)
   }
 
   def validDirectoryBlock(directoryBlock: UserDirectoryBlock): Boolean = {

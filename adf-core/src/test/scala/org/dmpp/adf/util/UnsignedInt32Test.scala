@@ -27,41 +27,38 @@
  */
 package org.dmpp.adf.util
 
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 /**
  * Test cases for UnsignedInt32.
  */
-class UnsignedInt32Test extends JUnit4(UnsignedInt32Spec)
-object UnsignedInt32SpecRunner extends ConsoleRunner(UnsignedInt32Spec)
+@RunWith(classOf[JUnitRunner])
+class UnsignedInt32Spec extends FlatSpec with ShouldMatchers {
 
-object UnsignedInt32Spec extends Specification {
-
-  "UnsignedInt32" should {
-    import UnsignedInt32Conversions._
-
-    "make an UnsignedInt" in {
-      val uint = UnsignedInt32(32)
-      uint.value must_== 32l
-    }
-    "add two UnsignedInts" in {
-      val uint = UnsignedInt32(32)
-      val result = uint + 5
-      result.value must_== 37l
-      result.overflowOccurred must beFalse
-    }
-    "do a wrapping addition" in {
-      val uint = UnsignedInt32(UnsignedInt32.MaxValue)
-      val result = uint + 5
-      result.value must_== 4l
-      result.overflowOccurred must beTrue
-    }
-    "not allow negative values" in {
-      UnsignedInt32(-42) must throwA[IllegalArgumentException]
-    }
-    "not allow values exceeding the 32 bit unsigned range" in {
-      UnsignedInt32(4294967300l) must throwA[IllegalArgumentException]
-    }
+  import UnsignedInt32Conversions._
+  "UnsignedInt32" should "make an UnsignedInt" in {
+    val uint = UnsignedInt32(32)
+    uint.value should be === (32l)
+  }
+  it should "add two UnsignedInts" in {
+    val uint = UnsignedInt32(32)
+    val result = uint + 5
+    result.value            should be === (37l)
+    result.overflowOccurred should be (false)
+  }
+  it should "do a wrapping addition" in {
+    val uint = UnsignedInt32(UnsignedInt32.MaxValue)
+    val result = uint + 5
+    result.value            should be === (4l)
+    result.overflowOccurred should be (true)
+  }
+  it should "not allow negative values" in {
+    evaluating { UnsignedInt32(-42) } should produce [IllegalArgumentException]
+  }
+  it should "not allow values exceeding the 32 bit unsigned range" in {
+    evaluating { UnsignedInt32(4294967300l) } should produce [IllegalArgumentException]
   }
 }

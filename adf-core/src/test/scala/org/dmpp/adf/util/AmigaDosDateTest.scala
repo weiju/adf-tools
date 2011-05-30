@@ -27,81 +27,84 @@
  */
 package org.dmpp.adf.util
 
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 import java.io._
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
-/**
- * Test cases for AmigaDOS dates.
- */
-class AmigaDosDateTest extends JUnit4(AmigaDosDateSpec)
-object AmigaDosDateSpecRunner extends ConsoleRunner(AmigaDosDateSpec)
-
-object AmigaDosDateSpec extends Specification {
-
-  "AmigaDosDate" should {
-    "represent its first date" in {
-      formatted(AmigaDosDate(0, 0, 0).toDate) must_== "1978-01-01 00:00:00.000"
-    }
-    "add a couple of ticks" in {
-      formatted(AmigaDosDate(0, 0, 50).toDate) must_== "1978-01-01 00:00:01.000"
-      formatted(AmigaDosDate(0, 0, 102).toDate) must_== "1978-01-01 00:00:02.040"
-    }
-    "add a couple of minutes" in {
-      formatted(AmigaDosDate(0, 42, 0).toDate) must_== "1978-01-01 00:42:00.000"
-      formatted(AmigaDosDate(0, 210, 0).toDate) must_== "1978-01-01 03:30:00.000"
-    }
-    "add a couple of days" in {
-      formatted(AmigaDosDate(3, 0, 0).toDate) must_== "1978-01-04 00:00:00.000"
-      formatted(AmigaDosDate(367, 0, 0).toDate) must_== "1979-01-03 00:00:00.000"
-    }
-  }
-
-  "AmigaDosDateConversions" should {
-    "convert the zero date" in {
-      val date = dateFromString("1978-01-01 00:00:00.000")
-      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
-      amigaDate.daysSinceJan_1_78 must_== 0
-      amigaDate.minutesPastMidnight must_== 0
-      amigaDate.ticksPastLastMinute must_== 0
-    }
-    "convert some milliseconds to ticks" in {
-      val date = dateFromString("1978-01-01 00:00:00.100")
-      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
-      amigaDate.daysSinceJan_1_78 must_== 0
-      amigaDate.minutesPastMidnight must_== 0
-      amigaDate.ticksPastLastMinute must_== 5
-    }
-    "convert some seconds" in {
-      val date = dateFromString("1978-01-01 00:00:42.100")
-      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
-      amigaDate.daysSinceJan_1_78 must_== 0
-      amigaDate.minutesPastMidnight must_== 0
-      amigaDate.ticksPastLastMinute must_== 2105
-    }
-    "convert some minutes" in {
-      val date = dateFromString("1978-01-01 00:13:00.100")
-      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
-      amigaDate.daysSinceJan_1_78 must_== 0
-      amigaDate.minutesPastMidnight must_== 13
-      amigaDate.ticksPastLastMinute must_== 5
-    }
-    "convert some days" in {
-      val date = dateFromString("1978-01-06 00:13:00.100")
-      val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
-      amigaDate.daysSinceJan_1_78 must_== 5
-      amigaDate.minutesPastMidnight must_== 13
-      amigaDate.ticksPastLastMinute must_== 5
-    }
-  }
-
+object AmigaDosDateTestUtil {
   def dateFromString(dateString: String) = {
     new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").parse(dateString)
   }
   def formatted(date: Date) = {
     new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(date)
+  }
+}
+
+/**
+ * Test cases for AmigaDOS dates.
+ */
+@RunWith(classOf[JUnitRunner])
+class AmigaDosDateSpec extends FlatSpec with ShouldMatchers {
+  import AmigaDosDateTestUtil._
+
+  "AmigaDosDate" should "represent its first date" in {
+    formatted(AmigaDosDate(0, 0, 0).toDate) should be === ("1978-01-01 00:00:00.000")
+  }
+  it should "add a couple of ticks" in {
+    formatted(AmigaDosDate(0, 0, 50).toDate) should be === ("1978-01-01 00:00:01.000")
+    formatted(AmigaDosDate(0, 0, 102).toDate) should be === ("1978-01-01 00:00:02.040")
+  }
+  it should "add a couple of minutes" in {
+    formatted(AmigaDosDate(0, 42, 0).toDate) should be === ("1978-01-01 00:42:00.000")
+    formatted(AmigaDosDate(0, 210, 0).toDate) should be === ("1978-01-01 03:30:00.000")
+  }
+  it should "add a couple of days" in {
+    formatted(AmigaDosDate(3, 0, 0).toDate) should be === ("1978-01-04 00:00:00.000")
+    formatted(AmigaDosDate(367, 0, 0).toDate) should be === ("1979-01-03 00:00:00.000")
+  }
+}
+
+@RunWith(classOf[JUnitRunner])
+class AmigaDateConversionsSpec extends FlatSpec with ShouldMatchers {
+  import AmigaDosDateTestUtil._
+  "AmigaDosDateConversions" should "convert the zero date" in {
+    val date = dateFromString("1978-01-01 00:00:00.000")
+    val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+    amigaDate.daysSinceJan_1_78   should be === (0)
+    amigaDate.minutesPastMidnight should be === (0)
+    amigaDate.ticksPastLastMinute should be === (0)
+  }
+  it should "convert some milliseconds to ticks" in {
+    val date = dateFromString("1978-01-01 00:00:00.100")
+    val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+    amigaDate.daysSinceJan_1_78   should be === (0)
+    amigaDate.minutesPastMidnight should be === (0)
+    amigaDate.ticksPastLastMinute should be === (5)
+  }
+  it should "convert some seconds" in {
+    val date = dateFromString("1978-01-01 00:00:42.100")
+    val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+    amigaDate.daysSinceJan_1_78   should be === (0)
+    amigaDate.minutesPastMidnight should be === (0)
+    amigaDate.ticksPastLastMinute should be === (2105)
+  }
+  it should "convert some minutes" in {
+    val date = dateFromString("1978-01-01 00:13:00.100")
+    val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+    amigaDate.daysSinceJan_1_78   should be === (0)
+    amigaDate.minutesPastMidnight should be === (13)
+    amigaDate.ticksPastLastMinute should be === (5)
+  }
+  it should "convert some days" in {
+    val date = dateFromString("1978-01-06 00:13:00.100")
+    val amigaDate = AmigaDosDateConversions.date2AmigaDosDate(date)
+    amigaDate.daysSinceJan_1_78   should be === (5)
+    amigaDate.minutesPastMidnight should be === (13)
+    amigaDate.ticksPastLastMinute should be === (5)
   }
 }

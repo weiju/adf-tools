@@ -29,26 +29,24 @@ package org.dmpp.adf.app
 
 import java.io._
 
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-class UserVolumeFactoryTest extends JUnit4(UserVolumeFactorySpec)
-object UserVolumeFactorySpecRunner extends ConsoleRunner(UserVolumeFactorySpec)
-
-object UserVolumeFactorySpec extends Specification {
-  "UserVolumeFactory" should {
-    "create an empty volume" in {
-      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
-      empty.name must_== "Empty"
-    }
-    "create an empty volume with a name" in {
-      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk("MyDisk")
-      empty.name must_== "MyDisk"
-    }
-    "read a workbench" in {
-      val workbenchFile = new File(getClass.getResource("/wbench1.3.adf").getFile)
-      val workbench = UserVolumeFactory.readFromFile(workbenchFile)
-      workbench.name must_== "Workbench1.3"
-    }
+@RunWith(classOf[JUnitRunner])
+class UserVolumeFactorySpec extends FlatSpec with ShouldMatchers {
+  "UserVolumeFactory" should "create an empty volume" in {
+    val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
+    empty.name should be ("Empty")
+  }
+  it should "create an empty volume with a name" in {
+    val empty = UserVolumeFactory.createEmptyDoubleDensityDisk("MyDisk")
+    empty.name should be ("MyDisk")
+  }
+  it should "read a workbench" in {
+    val workbenchFile = new File(getClass.getResource("/wbench1.3.adf").getFile)
+    val workbench = UserVolumeFactory.readFromFile(workbenchFile)
+    workbench.name should be ("Workbench1.3")
   }
 }

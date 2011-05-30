@@ -28,16 +28,13 @@
 package org.dmpp.adf.gui
 
 import java.util.Date
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 import org.dmpp.adf.app._
-
-/**
- * Test cases for DirectoryView.
- */
-class DirectoryViewTest extends JUnit4(DirectoryViewSpec)
-object DirectoryViewSpecRunner extends ConsoleRunner(DirectoryViewSpec)
 
 // we only need to mock out our files and directories since all we need
 // is a view
@@ -64,7 +61,8 @@ class DirectoryMock(name: String) extends DosFileMock(name) with Directory {
   def find(filename: String): Option[DosFile] = None
 }
 
-object DirectoryViewSpec extends Specification {
+@RunWith(classOf[JUnitRunner])
+class DirectoryViewSpec extends FlatSpec with ShouldMatchers with BeforeAndAfterEach {
   var view: DirectoryView = null
   val mockDir = new DirectoryMock("mockdir") {
     override def list: List[DosFile] = {
@@ -76,23 +74,21 @@ object DirectoryViewSpec extends Specification {
        )
     }
   }
+  override def beforeEach {
+    view = new DirectoryView
+    view.currentDirectory = mockDir
+    view.hideInfoFiles = false
+  }
 
-  "DirectoryView" should {
-    doBefore {
-      view = new DirectoryView
-      view.currentDirectory = mockDir
-      view.hideInfoFiles = false
-    }
-    "wrap a UserDirectory" in {
-      view.list.length must_== mockDir.list.length
-    }
-    "hide info files" in {
-      view.hideInfoFiles = true
-      val dirEntries = view.list
-      dirEntries.length must_== 3
-      dirEntries.find(e => e.name == "file1") must_!= None
-      dirEntries.find(e => e.name == "file2") must_!= None
-      dirEntries.find(e => e.name == "dir1") must_!= None
-    }
+  "DirectoryView" should "wrap a UserDirectory" in {
+    view.list.length should be === (mockDir.list.length)
+  }
+  it should "hide info files" in {
+    view.hideInfoFiles = true
+    val dirEntries = view.list
+    dirEntries.length should be === (3)
+    dirEntries.find(e => e.name == "file1") should not be (None)
+    dirEntries.find(e => e.name == "file2") should not be (None)
+    dirEntries.find(e => e.name == "dir1")  should not be (None)
   }
 }

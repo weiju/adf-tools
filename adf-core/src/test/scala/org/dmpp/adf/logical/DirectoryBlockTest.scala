@@ -29,86 +29,83 @@ package org.dmpp.adf.logical
 
 import java.io._
 import java.util.Date
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+
+import org.scalatest.FlatSpec
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 import org.dmpp.adf.physical._
 
-class DirectoryBlockTest extends JUnit4(DirectoryBlockSpec)
-object DirectoryBlockSpecRunner extends ConsoleRunner(DirectoryBlockSpec)
-
-object DirectoryBlockSpec extends Specification {
+@RunWith(classOf[JUnitRunner])
+class DirectoryBlockSpec extends FlatSpec with ShouldMatchers with BeforeAndAfterEach {
 
   var physicalVolume: PhysicalVolume = null
   var logicalVolume: LogicalVolume = null
   def dirBlock      = logicalVolume.rootBlock
 
-  "DirectoryBlock" should {
-    doBefore {
-      var workbenchFile: InputStream = null
-      try {
-        workbenchFile = getClass.getResourceAsStream("/wbench1.3.adf")
-        physicalVolume = PhysicalVolumeFactory.readDoubleDensityDisk(workbenchFile)
-        logicalVolume = new LogicalVolume(physicalVolume)
-      } finally {
-        if (workbenchFile != null) workbenchFile.close
-      }
+  override def beforeEach {
+    var workbenchFile: InputStream = null
+    try {
+      workbenchFile = getClass.getResourceAsStream("/wbench1.3.adf")
+      physicalVolume = PhysicalVolumeFactory.readDoubleDensityDisk(workbenchFile)
+      logicalVolume = new LogicalVolume(physicalVolume)
+    } finally {
+      if (workbenchFile != null) workbenchFile.close
     }
+  }
 
-    "return 0 for non-existing file name" in {
-      dirBlock.blockNumberForName("notexisting") must_== 0
-    }
+  "DirectoryBlock" should "return 0 for non-existing file name" in {
+    dirBlock.blockNumberForName("notexisting") should be === (0)
+  }
 
-    "have hash table that contains system entries" in {
-      dirBlock.hashtableEntries.length must_== 24
-      dirBlock.hashtableEntries.find(e => e.name == "c") must_!= None
-      dirBlock.hashtableEntries.find(e => e.name == "System") must_!= None
-    }
+  it should "have hash table that contains system entries" in {
+    dirBlock.hashtableEntries.length                        should be === (24)
+    dirBlock.hashtableEntries.find(e => e.name == "c")      should not be (None)
+    dirBlock.hashtableEntries.find(e => e.name == "System") should not be (None)
+  }
+  it should "return valid block numbers for valid file names" in {
+    dirBlock.blockNumberForName("System")      should be === (881)
+    dirBlock.blockNumberForName("System.info") should be === (1289)
+    dirBlock.blockNumberForName("Empty")       should be === (1281)
+  }
+  it should "add a directory in a filled slot" in {
+    val oldEntryCount = dirBlock.hashtableEntries.length
+    // places itself in front of "Utilities"
+    addDirectory("myname")
+    dirBlock.hashtableEntries.find(e => e.name == "myname") should not be (None)
+    dirBlock.hashtableEntries.length                        should be === (oldEntryCount + 1)
+    dirBlock.checksumIsValid                                should be (true)
+    recent(dirBlock.lastModificationTime)                   should be (true)
+  }
+  it should "remove a directory just added" in {
+    val oldEntryCount = dirBlock.hashtableEntries.length
+    addDirectory("myname")
+    dirBlock.removeFromHashtable("myname")
 
-    "return valid block numbers for valid file names" in {
-      dirBlock.blockNumberForName("System") must_== 881
-      dirBlock.blockNumberForName("System.info") must_== 1289
-      dirBlock.blockNumberForName("Empty") must_== 1281
-    }
+    dirBlock.hashtableEntries.find(e => e.name == "myname") should be (None)
+    dirBlock.hashtableEntries.length                        should be === (oldEntryCount)
+    dirBlock.checksumIsValid                                should be (true)
+    recent(dirBlock.lastModificationTime)                   should be (true)
+  }
+  it should "remove a non-existing entry" in {
+    val oldEntryCount = dirBlock.hashtableEntries.length
+    dirBlock.removeFromHashtable("doesnotexist")
 
-    "add a directory in a filled slot" in {
-      val oldEntryCount = dirBlock.hashtableEntries.length
-      // places itself in front of "Utilities"
-      addDirectory("myname")
-      dirBlock.hashtableEntries.find(e => e.name == "myname") must_!= None
-      dirBlock.hashtableEntries.length must_== oldEntryCount + 1
-      dirBlock.checksumIsValid must beTrue
-      recent(dirBlock.lastModificationTime) must beTrue
-    }
+    dirBlock.hashtableEntries.length should be === (oldEntryCount)
+    dirBlock.checksumIsValid         should be (true)
+  }
 
-    "remove a directory just added" in {
-      val oldEntryCount = dirBlock.hashtableEntries.length
-      addDirectory("myname")
-      dirBlock.removeFromHashtable("myname")
+  it should "remove an entry in the middle of the chain" in {
+    val oldEntryCount = dirBlock.hashtableEntries.length
+    addDirectory("myname")
+    dirBlock.removeFromHashtable("Utilities")
 
-      dirBlock.hashtableEntries.find(e => e.name == "myname") must_== None
-      dirBlock.hashtableEntries.length must_== oldEntryCount
-      dirBlock.checksumIsValid must beTrue
-      recent(dirBlock.lastModificationTime) must beTrue
-    }
-    "remove a non-existing entry" in {
-      val oldEntryCount = dirBlock.hashtableEntries.length
-      dirBlock.removeFromHashtable("doesnotexist")
-
-      dirBlock.hashtableEntries.length must_== oldEntryCount
-      dirBlock.checksumIsValid must beTrue
-    }
-
-    "remove an entry in the middle of the chain" in {
-      val oldEntryCount = dirBlock.hashtableEntries.length
-      addDirectory("myname")
-      dirBlock.removeFromHashtable("Utilities")
-
-      dirBlock.hashtableEntries.find(e => e.name == "Utilities") must_== None
-      dirBlock.hashtableEntries.length must_== oldEntryCount
-      dirBlock.checksumIsValid must beTrue
-      recent(dirBlock.lastModificationTime) must beTrue
-    }
+    dirBlock.hashtableEntries.find(e => e.name == "Utilities") should be (None)
+    dirBlock.hashtableEntries.length                           should be === (oldEntryCount)
+    dirBlock.checksumIsValid                                   should be (true)
+    recent(dirBlock.lastModificationTime)                      should be (true)
   }
 
   private def addDirectory(name: String) {

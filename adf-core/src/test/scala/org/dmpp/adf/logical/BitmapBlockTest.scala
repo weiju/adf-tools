@@ -27,69 +27,68 @@
  */
 package org.dmpp.adf.logical
 
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 import org.dmpp.adf.physical._
 
 /**
  * Test cases for bitmap blocks.
  */
-class BitmapBlockTest extends JUnit4(BitmapBlockSpec)
-object BitmapBlockSpecRunner extends ConsoleRunner(BitmapBlockSpec)
-
-object BitmapBlockSpec extends Specification {
+@RunWith(classOf[JUnitRunner])
+class BitmapBlockSpec extends FlatSpec with ShouldMatchers with BeforeAndAfterEach {
 
   val NumBitsPerBitmapBlock = (DoubleDensityDisk.BytesPerSector - 4) * 8
   var bitmapBlock : BitmapBlock = null
 
-  "BitmapBlock" should {
+  override def beforeEach {
+    val emptyVolume = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk")
+    bitmapBlock = new BitmapBlock(emptyVolume, 881)
+    bitmapBlock.initialize
+  }
+  "BitmapBlock" should "initialize a bitmap block" in {
+    bitmapBlock.checksumIsValid         should be (true)
+    bitmapBlock.freeBlockIndexes.length should be === (NumBitsPerBitmapBlock)
+    bitmapBlock.usedBlockIndexes        should be (Nil)
+  }
+  it should "allocate a block" in {
+    val oldChecksum = bitmapBlock.storedChecksum
+    bitmapBlock.allocate(0)
 
-    doBefore {
-      val emptyVolume = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk")
-      bitmapBlock = new BitmapBlock(emptyVolume, 881)
-      bitmapBlock.initialize
-    }
-    "initialize a bitmap block" in {
-      bitmapBlock.checksumIsValid must beTrue
-      bitmapBlock.freeBlockIndexes.length must_== NumBitsPerBitmapBlock
-      bitmapBlock.usedBlockIndexes must_== Nil
-    }
-    "allocate a block" in {
-      val oldChecksum = bitmapBlock.storedChecksum
-      bitmapBlock.allocate(0)
-      bitmapBlock.freeBlockIndexes.length must_== NumBitsPerBitmapBlock - 1
-      bitmapBlock.usedBlockIndexes must_== List(0)
-      bitmapBlock.isAllocated(0) must beTrue
-      bitmapBlock.isFree(0) must beFalse
-      bitmapBlock.storedChecksum must_!= oldChecksum
-      bitmapBlock.checksumIsValid must beTrue
-    }
-    "allocate another block" in {
-      bitmapBlock.allocate(880)
-      bitmapBlock.isAllocated(880) must beTrue
-      bitmapBlock.isFree(880) must beFalse
-      bitmapBlock.checksumIsValid must beTrue
-    }
-    "prevent allocating the same block twice" in {
-      bitmapBlock.allocate(878)
-      bitmapBlock.allocate(878) must throwA[BlockAlreadyAllocated]
-    }
-    "frees an allocated block" in {
-      bitmapBlock.allocate(878)
-      val oldChecksum = bitmapBlock.storedChecksum
-      bitmapBlock.free(878)
-      bitmapBlock.isFree(878) must beTrue
-      bitmapBlock.storedChecksum must_!= oldChecksum
-      bitmapBlock.checksumIsValid must beTrue
-    }
-    "has block 0 and 3 marked" in {
-      val sector = bitmapBlock.physicalVolume.sector(881)
-      sector.setInt32At(4, 0x6fffffff)
-      bitmapBlock.isAllocated(31) must beTrue
-      bitmapBlock.isFree(31) must beFalse
-      bitmapBlock.isAllocated(28) must beTrue
-      bitmapBlock.isFree(28) must beFalse
-    }
+    bitmapBlock.freeBlockIndexes.length should be === (NumBitsPerBitmapBlock - 1)
+    bitmapBlock.usedBlockIndexes        should be === (List(0))
+    bitmapBlock.isAllocated(0)          should be (true)
+    bitmapBlock.isFree(0)               should be (false)
+    bitmapBlock.storedChecksum          should not be === (oldChecksum)
+    bitmapBlock.checksumIsValid         should be (true)
+  }
+  it should "allocate another block" in {
+    bitmapBlock.allocate(880)
+    bitmapBlock.isAllocated(880) should be (true)
+    bitmapBlock.isFree(880)      should be (false)
+    bitmapBlock.checksumIsValid  should be (true)
+  }
+  it should "prevent allocating the same block twice" in {
+    bitmapBlock.allocate(878)
+    evaluating { bitmapBlock.allocate(878) } should produce [BlockAlreadyAllocated]
+  }
+  it should "free an allocated block" in {
+    bitmapBlock.allocate(878)
+    val oldChecksum = bitmapBlock.storedChecksum
+    bitmapBlock.free(878)
+    bitmapBlock.isFree(878)     should be (true)
+    bitmapBlock.storedChecksum  should not be === (oldChecksum)
+    bitmapBlock.checksumIsValid should be (true)
+  }
+  it should "have block 0 and 3 marked" in {
+    val sector = bitmapBlock.physicalVolume.sector(881)
+    sector.setInt32At(4, 0x6fffffff)
+    bitmapBlock.isAllocated(31) should be (true)
+    bitmapBlock.isFree(31)      should be (false)
+    bitmapBlock.isAllocated(28) should be (true)
+    bitmapBlock.isFree(28)      should be (false)
   }
 }

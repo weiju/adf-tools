@@ -27,8 +27,11 @@
  */
 package org.dmpp.adf.app
 
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 import java.io._
 import java.util.Date
@@ -37,97 +40,94 @@ import org.dmpp.adf.app._
 /**
  * Test cases for user volumes.
  */
-class UserVolumeTest extends JUnit4(UserVolumeSpec)
-object UserVolumeSpecRunner extends ConsoleRunner(UserVolumeSpec)
+@RunWith(classOf[JUnitRunner])
+class UserVolumeSpec extends FlatSpec with ShouldMatchers with BeforeAndAfterEach {
 
-object UserVolumeSpec extends Specification {
-  "UserVolume" should {
-    val workbenchFile = new File(getClass.getResource("/wbench1.3.adf").getFile)
-    var emptyDisk: UserVolume = null
-    var emptyDiskOFS: UserVolume = null
-    var workbenchDisk: UserVolume = null
+  val workbenchFile = new File(getClass.getResource("/wbench1.3.adf").getFile)
+  var emptyDisk: UserVolume = null
+  var emptyDiskOFS: UserVolume = null
+  var workbenchDisk: UserVolume = null
 
-    doBefore {
-      workbenchDisk = UserVolumeFactory.readFromFile(workbenchFile)
-      emptyDisk = UserVolumeFactory.createEmptyDoubleDensityDisk()
-      emptyDiskOFS = UserVolumeFactory.createEmptyDoubleDensityDisk("OFSEmpty", "OFS")
-    }
+  override def beforeEach {
+    workbenchDisk = UserVolumeFactory.readFromFile(workbenchFile)
+    emptyDisk = UserVolumeFactory.createEmptyDoubleDensityDisk()
+    emptyDiskOFS = UserVolumeFactory.createEmptyDoubleDensityDisk("OFSEmpty", "OFS")
+  }
 
-    "new disk must be valid dos disk" in {
-      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
-      empty.isValid must beTrue
-    }
-    "new disk must have recent creation date" in {
-      val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
-      recent(empty.creationTime) must beTrue
-      recent(empty.rootDirectory.lastModificationTime) must beTrue
-      recent(empty.lastModificationTime) must beTrue
-    }
-    "workbench disk must be valid dos disk" in {
-      workbenchDisk.isValid must beTrue
-    }
-    "read workbench root directory" in {
-      workbenchDisk.name must_== "Workbench1.3"
-      workbenchDisk.toString must_== "Workbench1.3"
-      formatted(workbenchDisk.creationTime) must_== "1989-08-16 13:57:36.100"
-      val rootdir = workbenchDisk.rootDirectory
-      rootdir.isDirectory must beTrue
-      rootdir.name must_== "Workbench1.3"
-      rootdir.list.length must_== 24
-    }
-    "find Disk.info in root directory" in {
-      workbenchDisk.rootDirectory.find("Disk.info").get.isFile must beTrue
-    }
-    "Disk.info should have file size" in {
-      val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get
-      diskInfo.asInstanceOf[UserFile].size must_== 370
-    }
-    "Disk.info should get data bytes" in {
-      val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get
-      val dataBytes = diskInfo.asInstanceOf[UserFile].dataBytes
-      dataBytes.length must_== 370
-    }
-    "not find a file in root directory" in {
-      workbenchDisk.rootDirectory.find("notfound") must_== None
-    }
-    "find a directory root directory" in {
-      val utilDir = workbenchDisk.rootDirectory.find("Utilities").get
-      utilDir.isDirectory must beTrue
-    }
+  "UserVolume" should "new disk must be valid dos disk" in {
+    val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
+    empty should be ('valid)
+  }
+  it should "ensure a  new disk has a recent creation date" in {
+    val empty = UserVolumeFactory.createEmptyDoubleDensityDisk()
+    recent(empty.creationTime) should be (true)
+    recent(empty.rootDirectory.lastModificationTime) should be (true)
+    recent(empty.lastModificationTime) should be (true)
+  }
+  it should "ensure workbench disk is valid dos disk" in {
+    workbenchDisk should be ('valid)
+  }
+  it should "read workbench root directory" in {
+    workbenchDisk.name                    should be ("Workbench1.3")
+    workbenchDisk.toString                should be ("Workbench1.3")
+    formatted(workbenchDisk.creationTime) should be ("1989-08-16 13:57:36.100")
+    val rootdir = workbenchDisk.rootDirectory
+    rootdir                               should be ('directory)
+    rootdir.name                          should be ("Workbench1.3")
+    rootdir.list.length                   should equal (24)
+  }
+  it should "find Disk.info in root directory" in {
+    workbenchDisk.rootDirectory.find("Disk.info").get should be ('file)
+  }
+  it should "ensure Disk.info has file size" in {
+    val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get
+    diskInfo.asInstanceOf[UserFile].size should be === (370)
+  }
+  it should "get Disk.info data bytes" in {
+    val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get
+    val dataBytes = diskInfo.asInstanceOf[UserFile].dataBytes
+    dataBytes.length should be === (370)
+  }
+  it should "not find a file in root directory" in {
+    workbenchDisk.rootDirectory.find("notfound") should be (None)
+  }
+  it should "find a directory root directory" in {
+    val utilDir = workbenchDisk.rootDirectory.find("Utilities").get
+    utilDir should be ('directory)
+  }
+  it should "rename a file" in {
+    val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get.asInstanceOf[UserFile]
+    diskInfo.name = "NewDisk.info"
+    diskInfo.name                            should be ("NewDisk.info")
+    diskInfo.fileHeaderBlock.checksumIsValid should be (true)
+    recent(diskInfo.lastModificationTime)    should be (true)
+  }
+  it should "rename a directory" in {
+    val dir = workbenchDisk.rootDirectory.find("Utilities").get.asInstanceOf[UserDirectory]
+    dir.name = "Utils"
+    dir.name                               should be ("Utils")
+    dir.thisDirectoryBlock.checksumIsValid should be (true)
+    workbenchDisk.logicalVolume.rootBlock.checksumIsValid should be (true)
+    recent(dir.lastModificationTime)       should be (true)
+  }
+  it should "rename a disk" in {
+    workbenchDisk.name = "MyBench"
+    workbenchDisk.name                                    should be ("MyBench")
+    recent(workbenchDisk.lastModificationTime)            should be (true)
+    workbenchDisk.logicalVolume.rootBlock.checksumIsValid should be (true)
+  }
+  it should "create a directory" in {
+    val numFreeBlocks0 = emptyDisk.numFreeBlocks
+    val rootdir = emptyDisk.rootDirectory
+    val newdir = rootdir.createDirectory("mydir")
 
-    "rename a file" in {
-      val diskInfo = workbenchDisk.rootDirectory.find("Disk.info").get.asInstanceOf[UserFile]
-      diskInfo.name = "NewDisk.info"
-      diskInfo.name must_== "NewDisk.info"
-      diskInfo.fileHeaderBlock.checksumIsValid must beTrue
-      recent(diskInfo.lastModificationTime) must beTrue
-    }
-    "rename a directory" in {
-      val dir = workbenchDisk.rootDirectory.find("Utilities").get.asInstanceOf[UserDirectory]
-      dir.name = "Utils"
-      dir.name must_== "Utils"
-      dir.thisDirectoryBlock.checksumIsValid must beTrue
-      workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
-      recent(dir.lastModificationTime) must beTrue
-    }
-    "rename a disk" in {
-      workbenchDisk.name = "MyBench"
-      workbenchDisk.name must_== "MyBench"
-      recent(workbenchDisk.lastModificationTime) must beTrue
-      workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
-    }
-    "create a directory" in {
-      val numFreeBlocks0 = emptyDisk.numFreeBlocks
-      val rootdir = emptyDisk.rootDirectory
-      val newdir = rootdir.createDirectory("mydir")
-      newdir.name must_== "mydir"
-      recent(newdir.lastModificationTime) must beTrue
-      newdir.thisDirectoryBlock.checksumIsValid must beTrue
-      emptyDisk.numFreeBlocks must_== (numFreeBlocks0 - 1)
-      recent(rootdir.lastModificationTime) must beTrue
-      recent(emptyDisk.lastModificationTime) must beTrue
-      workbenchDisk.logicalVolume.rootBlock.checksumIsValid must beTrue
-    }
+    newdir.name                                           should be ("mydir")
+    recent(newdir.lastModificationTime)                   should be (true)
+    newdir.thisDirectoryBlock.checksumIsValid             should be (true)
+    emptyDisk.numFreeBlocks                               should be === (numFreeBlocks0 - 1)
+    recent(rootdir.lastModificationTime)                  should be (true)
+    recent(emptyDisk.lastModificationTime)                should be (true)
+    workbenchDisk.logicalVolume.rootBlock.checksumIsValid should be (true)
   }
   def formatted(date: Date) = {
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")

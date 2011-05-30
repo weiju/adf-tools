@@ -27,41 +27,39 @@
  */
 package org.dmpp.adf.util
 
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 /**
  * Test cases for BitHelper.
  */
-class BitHelperTest extends JUnit4(BitHelperSpec)
-object BitHeperSpecRunner extends ConsoleRunner(BitHelperSpec)
-
 object MyBitHelper extends BitHelper
 
-object BitHelperSpec extends Specification {
+@RunWith(classOf[JUnitRunner])
+class BitHelperSpec extends FlatSpec with ShouldMatchers {
 
-  "BitHelper" should {
-     "determine the bits set in a bit mask" in {
-      MyBitHelper.bitsSetIn(0) must_== Nil
-      MyBitHelper.bitsSetIn(1) must_== List(0)
-      MyBitHelper.bitsSetIn(6) must_== List(1, 2)
-    }
-    "determine the bits not set in a bit mask" in {
-      MyBitHelper.bitsClearIn(0xffffffff) must_== Nil
-      MyBitHelper.bitsClearIn(0xfffffffe) must_== List(0)
-      MyBitHelper.bitsClearIn(0) must_==
-        List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
-      MyBitHelper.bitsClearIn(0x0000ffff) must_==
-        List(16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
-    }
-    "make an unsigned 32 bit int" in {
-      MyBitHelper.makeInt32(0xff, 0xfe, 0xfd, 0xfc) must_== 0xfffefdfc
-      MyBitHelper.makeInt32(0x10, 0xfe, 0x20, 0xff) must_== 0x10fe20ff
-    }
-    "make an unsigned 16 bit int" in {
-      MyBitHelper.makeInt16(0xff, 0xfe) must_== 0xfffe
-      MyBitHelper.makeInt16(0x10, 0xfe) must_== 0x10fe
-    }
+  "BitHelper" should "determine the bits set in a bit mask" in {
+    MyBitHelper.bitsSetIn(0) should be (Nil)
+    MyBitHelper.bitsSetIn(1) should be === (List(0))
+    MyBitHelper.bitsSetIn(6) should be === (List(1, 2))
+  }
+  it should "determine the bits not set in a bit mask" in {
+    MyBitHelper.bitsClearIn(0xffffffff) should be (Nil)
+    MyBitHelper.bitsClearIn(0xfffffffe) should be === (List(0))
+    MyBitHelper.bitsClearIn(0) should be ===
+      (List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+            17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31))
+    MyBitHelper.bitsClearIn(0x0000ffff) should be ===
+      (List(16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31))
+  }
+  it should "make an unsigned 32 bit int" in {
+    MyBitHelper.makeInt32(0xff, 0xfe, 0xfd, 0xfc) should be === (0xfffefdfc)
+    MyBitHelper.makeInt32(0x10, 0xfe, 0x20, 0xff) should be === (0x10fe20ff)
+  }
+  it should "make an unsigned 16 bit int" in {
+    MyBitHelper.makeInt16(0xff, 0xfe) should be === (0xfffe)
+    MyBitHelper.makeInt16(0x10, 0xfe) should be === (0x10fe)
   }
 }

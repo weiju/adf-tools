@@ -27,107 +27,104 @@
  */
 package org.dmpp.adf.app
 
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 import java.io._
 import java.util.Date
 import org.dmpp.adf.app._
 
-/**
- * Test cases for user volumes.
- */
-class FileWriteTest extends JUnit4(FileWriteSpec)
-object FileWriteSpecRunner extends ConsoleRunner(FileWriteSpec)
+@RunWith(classOf[JUnitRunner])
+class FileWriteSpec extends FlatSpec with ShouldMatchers with BeforeAndAfterEach {
+  var emptyDiskFFS: UserVolume = null
+  var emptyDiskOFS: UserVolume = null
+  
+  override def beforeEach {
+    emptyDiskFFS = UserVolumeFactory.createEmptyDoubleDensityDisk()
+    emptyDiskOFS = UserVolumeFactory.createEmptyDoubleDensityDisk("OFSEmpty", "OFS")
+  }
 
-object FileWriteSpec extends Specification {
-  "UserVolume" should {
-    var emptyDiskFFS: UserVolume = null
-    var emptyDiskOFS: UserVolume = null
+  "UserVolume" should "create an FFS file" in {
+    val data: Array[Byte] = Array(0xde.asInstanceOf[Byte],
+                                  0xad.asInstanceOf[Byte],
+                                  0xbe.asInstanceOf[Byte],
+                                  0xef.asInstanceOf[Byte])
+    emptyDiskFFS.rootDirectory.createFile("steak", data)
 
-    doBefore {
-      emptyDiskFFS = UserVolumeFactory.createEmptyDoubleDensityDisk()
-      emptyDiskOFS = UserVolumeFactory.createEmptyDoubleDensityDisk("OFSEmpty", "OFS")
+    emptyDiskFFS.logicalVolume.rootBlock.hashtableSize   should equal (0x48)
+    emptyDiskFFS.logicalVolume.rootBlock.bitmapIsValid   should be (true)
+    emptyDiskFFS.logicalVolume.rootBlock.checksumIsValid should be (true)
+    shouldBeRecent(emptyDiskFFS.lastModificationTime)
+    val rootdir = emptyDiskFFS.rootDirectory
+    shouldBeRecent(rootdir.lastModificationTime)
+
+    val file = rootdir.find("steak").get.asInstanceOf[UserFile]
+    file.fileHeaderBlock.checksumIsValid should be (true)
+    file.fileHeaderBlock.fileSize        should equal (4)
+    file.fileHeaderBlock.parent          should equal (880)
+    shouldBeRecent(file.lastModificationTime)
+
+    val resultData = file.dataBytes
+    resultData.length should equal (4)
+
+    resultData(0) & 0xff should equal (0xde)
+    resultData(1) & 0xff should equal (0xad)
+    resultData(2) & 0xff should equal (0xbe)
+    resultData(3) & 0xff should equal (0xef)
+  }
+
+  it should "create an FFS file that spans two blocks" in {
+    val data = new Array[Byte](1024)
+    for (i <- 0 to 1020 by 4) {
+      data(i)     = 0xde.asInstanceOf[Byte]
+      data(i + 1) = 0xad.asInstanceOf[Byte]
+      data(i + 2) = 0xbe.asInstanceOf[Byte]
+      data(i + 3) = 0xef.asInstanceOf[Byte]
     }
+    emptyDiskFFS.rootDirectory.createFile("steak", data)
+    val file = emptyDiskFFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
+    file.fileHeaderBlock.checksumIsValid should be (true)
+    file.fileHeaderBlock.fileSize        should equal (1024)
 
-    "create an FFS file" in {
-      val data: Array[Byte] = Array(0xde.asInstanceOf[Byte],
-                                    0xad.asInstanceOf[Byte],
-                                    0xbe.asInstanceOf[Byte],
-                                    0xef.asInstanceOf[Byte])
-      emptyDiskFFS.rootDirectory.createFile("steak", data)
+    val resultData = file.dataBytes
 
-      emptyDiskFFS.logicalVolume.rootBlock.hashtableSize must_== 0x48
-      emptyDiskFFS.logicalVolume.rootBlock.bitmapIsValid must beTrue
-      emptyDiskFFS.logicalVolume.rootBlock.checksumIsValid must beTrue
-      mustBeRecent(emptyDiskFFS.lastModificationTime)
-      val rootdir = emptyDiskFFS.rootDirectory
-      mustBeRecent(rootdir.lastModificationTime)
-
-      val file = rootdir.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.checksumIsValid must beTrue
-      file.fileHeaderBlock.fileSize must_== 4
-      file.fileHeaderBlock.parent must_== 880
-      mustBeRecent(file.lastModificationTime)
-
-      val resultData = file.dataBytes
-      resultData.length must_== 4
-
-      resultData(0) & 0xff must_== 0xde
-      resultData(1) & 0xff must_== 0xad
-      resultData(2) & 0xff must_== 0xbe
-      resultData(3) & 0xff must_== 0xef
-    }
-
-    "create an FFS file that spans two blocks" in {
-      val data = new Array[Byte](1024)
-      for (i <- 0 to 1020 by 4) {
-        data(i)     = 0xde.asInstanceOf[Byte]
-        data(i + 1) = 0xad.asInstanceOf[Byte]
-        data(i + 2) = 0xbe.asInstanceOf[Byte]
-        data(i + 3) = 0xef.asInstanceOf[Byte]
-      }
-      emptyDiskFFS.rootDirectory.createFile("steak", data)
-      val file = emptyDiskFFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.checksumIsValid must beTrue
-      file.fileHeaderBlock.fileSize must_== 1024
-
-      val resultData = file.dataBytes
-
-      resultData.length must_== 1024
-      for (i <- 0 to 1020 by 4) {
-        resultData(i + 0) & 0xff must_== 0xde
-        resultData(i + 1) & 0xff must_== 0xad
-        resultData(i + 2) & 0xff must_== 0xbe
-        resultData(i + 3) & 0xff must_== 0xef
-      }
-    }
-
-    "create an OFS file" in {
-      val data: Array[Byte] = Array(0xde.asInstanceOf[Byte],
-                                    0xad.asInstanceOf[Byte],
-                                    0xbe.asInstanceOf[Byte],
-                                    0xef.asInstanceOf[Byte])
-      emptyDiskOFS.rootDirectory.createFile("steak", data)
-      val file = emptyDiskOFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
-      file.fileHeaderBlock.checksumIsValid must beTrue
-      file.fileHeaderBlock.fileSize must_== 4
-
-      val resultData = file.dataBytes
-      resultData.length must_== 4
-
-      resultData(0) & 0xff must_== 0xde
-      resultData(1) & 0xff must_== 0xad
-      resultData(2) & 0xff must_== 0xbe
-      resultData(3) & 0xff must_== 0xef
+    resultData.length                    should equal (1024)
+    for (i <- 0 to 1020 by 4) {
+      resultData(i + 0) & 0xff           should equal (0xde)
+      resultData(i + 1) & 0xff           should equal (0xad)
+      resultData(i + 2) & 0xff           should equal (0xbe)
+      resultData(i + 3) & 0xff           should equal (0xef)
     }
   }
+
+  it should "create an OFS file" in {
+    val data: Array[Byte] = Array(0xde.asInstanceOf[Byte],
+                                  0xad.asInstanceOf[Byte],
+                                  0xbe.asInstanceOf[Byte],
+                                  0xef.asInstanceOf[Byte])
+    emptyDiskOFS.rootDirectory.createFile("steak", data)
+    val file = emptyDiskOFS.rootDirectory.find("steak").get.asInstanceOf[UserFile]
+    file.fileHeaderBlock.checksumIsValid should be (true)
+    file.fileHeaderBlock.fileSize        should equal (4)
+
+    val resultData = file.dataBytes
+    resultData.length                    should equal (4)
+
+    resultData(0) & 0xff should equal (0xde)
+    resultData(1) & 0xff should equal (0xad)
+    resultData(2) & 0xff should equal (0xbe)
+    resultData(3) & 0xff should equal (0xef)
+  }
+
   def formatted(date: Date) = {
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
     dateFormat.format(date)
   }
 
-  def mustBeRecent(date: Date) = {
-    (System.currentTimeMillis - date.getTime) must beLessThan(1000l)
+  def shouldBeRecent(date: Date) = {
+    (System.currentTimeMillis - date.getTime) should be < (1000l)
   }
 }

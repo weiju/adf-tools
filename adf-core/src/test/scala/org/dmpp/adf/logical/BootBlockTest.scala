@@ -28,35 +28,35 @@
 package org.dmpp.adf.logical
 
 import java.util.Date
-import org.specs._
-import org.specs.runner.{ConsoleRunner, JUnit4}
+import org.scalatest.FlatSpec
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-class BootBlockTest extends JUnit4(BootBlockSpec)
-object BootBlockSpecRunner extends ConsoleRunner(BootBlockSpec)
+@RunWith(classOf[JUnitRunner])
+class BootBlockSpec extends FlatSpec with ShouldMatchers with BeforeAndAfterEach {
 
-object BootBlockSpec extends Specification {
   var emptyOFS : LogicalVolume = null
   var emptyFFS : LogicalVolume = null
   def bootBlockOFS = emptyOFS.bootBlock
   def bootBlockFFS = emptyFFS.bootBlock
 
-  "BootBlock" should {
-    doBefore {
-      emptyOFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk", "OFS")
-      emptyFFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk", "FFS")
-    }
+  override def beforeEach {
+    emptyOFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk", "OFS")
+    emptyFFS = LogicalVolumeFactory.createEmptyDoubleDensityDisk("TestDisk", "FFS")
+  }
 
-    "boot block is initialized" in {
-      bootBlockOFS.isDosDisk must beTrue
-      bootBlockOFS.filesystemType must_== "OFS"
-      bootBlockOFS.isInternational must beFalse
-      bootBlockOFS.useDirCache must beFalse
+  "BootBlock" should "ensure boot block is initialized" in {
+    bootBlockOFS.isDosDisk       should be (true)
+    bootBlockOFS.filesystemType  should be ("OFS")
+    bootBlockOFS.isInternational should be (false)
+    bootBlockOFS.useDirCache     should be (false)
 
-      bootBlockFFS.isDosDisk must beTrue
-      bootBlockFFS.filesystemType must_== "FFS"
-      bootBlockFFS.isInternational must beFalse
-      bootBlockFFS.useDirCache must beFalse
-    }
+    bootBlockFFS.isDosDisk       should be (true)
+    bootBlockFFS.filesystemType  should be ("FFS")
+    bootBlockFFS.isInternational should be (false)
+    bootBlockFFS.useDirCache     should be (false)
   }
 }
 
