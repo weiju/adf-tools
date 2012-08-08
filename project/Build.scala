@@ -18,7 +18,7 @@ object MyBuild extends Build {
   lazy val core = Project("core", file("adf-core"))
 
   def testDependencies = libraryDependencies ++= Seq(
-    "org.scalatest" %% "scalatest" % "1.6.1",
-    "junit" % "junit" % "4.9")
+    "org.scalatest" %% "scalatest" % "1.8",
+    "junit" % "junit" % "4.10")
 }
 
