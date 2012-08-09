@@ -100,7 +100,7 @@ class PreviewPanel extends JPanel {
       currentIcon = infoReader.createIcon(data)
       updateImageLabels
     } catch {
-      case e =>
+      case e: Throwable =>
         currentIcon = null
         e.printStackTrace
     }

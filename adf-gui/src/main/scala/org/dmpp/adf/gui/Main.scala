@@ -51,7 +51,7 @@ class FileTableCellRenderer extends DefaultTableCellRenderer {
     try {
       if (file.isDirectory) setIcon(FolderIcon) else setIcon(FileIcon)
     } catch {
-      case e => e.printStackTrace
+      case e: Throwable => e.printStackTrace
     }
     setName(file.name)
     this
