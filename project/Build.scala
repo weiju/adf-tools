@@ -8,7 +8,7 @@ object MyBuild extends Build {
   def buildSettings = Seq(
     organization := "org.dmpp",
     version := "1.0",
-    scalaVersion := "2.10.0-M7",
+    scalaVersion := "2.10.0",
     javacOptions in Compile ++= Seq("-target", "6", "-source", "6")
   )
 
@@ -18,7 +18,7 @@ object MyBuild extends Build {
   lazy val core = Project("core", file("adf-core")) settings(testDependencies :_*)
 
   def testDependencies = libraryDependencies ++= Seq(
-    "org.scalatest" %% "scalatest" % "1.9-2.10.0-M7-B1",
+    "org.scalatest" % "scalatest_2.10" % "2.0.M5b",
     "junit" % "junit" % "4.10")
 }
 
