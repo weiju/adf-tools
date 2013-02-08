@@ -446,6 +446,10 @@ object Main {
   def main(args: Array[String]) {
     System.setProperty("apple.laf.useScreenMenuBar", "true")
     System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Arr!Jay")
+    val isMacOs = System.getProperty("os.name").toLowerCase.indexOf("mac") != -1
+    if (!isMacOs) {
+      UIManager.setLookAndFeel("com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel")
+    }
     val frame = new AdfToolsFrame
     frame.setVisible(true)
   }
