@@ -8,7 +8,7 @@ object MyBuild extends Build {
   def buildSettings = Seq(
     organization := "org.dmpp",
     version := "1.0",
-    scalaVersion := "2.11.4",
+    scalaVersion := "2.11.6",
     scalacOptions ++= Seq("-deprecation", "-unchecked"),
     javacOptions in Compile ++= Seq("-target", "6", "-source", "6")
   )
