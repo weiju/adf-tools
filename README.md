@@ -13,19 +13,30 @@ I started to write this because I wanted to use my Mac to prepare
 a couple of ADF files for testing on UAE.
 
 ##Usage
-You can simply download the latest version of the Arr!Jay jar
-from the project's download section. You will need at least a Java Runtime system >= 1.5 (1.6 recommended).
+
+Since Github does not support downloads anymore, a prebuilt
+binary can be downloaded from
+
+https://dl.dropboxusercontent.com/u/1361536/amiga/adftools-1.0.jar
 
 On most systems, a double click on the jar file's icon should
 work. Alternatively, the browser can be started with
 
-    java -jar arrjay-<date>.jar
+    java -jar adftools-1.0.jar
 
 from the command line.
 
 ## Building
 The project can be built with sbt.
-The library is in the adf-core module, the browser application is in the adf-gui module.
+The library is in the adf-core module, the application is in the app module.
+
+$ sbt
+> project app
+> run
+
+For building an assembly jar file that contains all dependencies, run
+
+sbt> assembly
 
 ##Status
 

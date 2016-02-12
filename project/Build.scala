@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+import sbtassembly.AssemblyKeys._
 
 object MyBuild extends Build {
 
@@ -15,10 +16,12 @@ object MyBuild extends Build {
     resolvers += Resolver.sonatypeRepo("public")
   )
 
-  lazy val root = Project("root", file(".")) aggregate(gui, command)
-  lazy val gui = Project("gui", file("adf-gui")) settings(testDependencies :_*) dependsOn(core, infolib)
+  lazy val root = Project("root", file(".")) aggregate(app)
+  lazy val app = Project("app", file("app")) settings(
+    mainClass in assembly := Some("org.dmpp.adf.gui.Main"),
+    testDependencies
+  ) dependsOn(core, infolib)
   lazy val infolib = Project("infolib", file("infolib")) dependsOn(core)
-  lazy val command = Project("command", file("command")) dependsOn(core)
   lazy val core = Project("core", file("adf-core")) settings(testDependencies :_*)
 
   def testDependencies = libraryDependencies ++= Seq(
