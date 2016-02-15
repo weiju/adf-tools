@@ -65,19 +65,20 @@ class FileTableCellRenderer extends DefaultTableCellRenderer {
  */
 class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
 
-  var currentVolume: UserVolume = null
-  var currentDir: Directory = null
-  var saveAsItem:    JMenuItem = null
-  var addFileItem:   JMenuItem = null
-  var addFolderItem: JMenuItem = null
-  var exportItem:    JMenuItem = null
-  var deleteItem:    JMenuItem = null
-  var palette1xItem: JRadioButtonMenuItem = null
-  var palette2xItem: JRadioButtonMenuItem = null
+  var currentVolume:     UserVolume = null
+  var currentDir:        Directory = null
+  var saveAsItem:        JMenuItem = null
+  var addFileItem:       JMenuItem = null
+  var addFolderItem:     JMenuItem = null
+  var relabelVolumeItem: JMenuItem = null
+  var exportItem:        JMenuItem = null
+  var deleteItem:        JMenuItem = null
+  var palette1xItem:     JRadioButtonMenuItem = null
+  var palette2xItem:     JRadioButtonMenuItem = null
 
-  var statusMessageLabel: JLabel = null
-  var lastSaveDirectory: File = null
-  var lastOpenDirectory: File = null
+  var statusMessageLabel:  JLabel = null
+  var lastSaveDirectory:   File = null
+  var lastOpenDirectory:   File = null
   var lastImportDirectory: File = null
 
   val treeModel = new DirectoryTreeModel
@@ -165,10 +166,20 @@ class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
     val fileMenu = new JMenu("File")
     menubar.add(fileMenu)
 
-    addMenuItem(fileMenu, "New Volume",
+    addMenuItem(fileMenu, "New OFS Volume",
                 new ActionListener {
-                  def actionPerformed(e: ActionEvent) = newFfsVolume
+                  def actionPerformed(e: ActionEvent) = newOFSVolume
                 })
+    addMenuItem(fileMenu, "New FFS Volume",
+                new ActionListener {
+                  def actionPerformed(e: ActionEvent) = newFFSVolume
+                })
+
+    relabelVolumeItem = addMenuItem(fileMenu, "Relabel Volume",
+      new ActionListener {
+        def actionPerformed(e: ActionEvent) = relabelVolume
+      })
+
     addFolderItem = addMenuItem(fileMenu, "New Folder",
                                 new ActionListener {
                                   def actionPerformed(e: ActionEvent) = newFolder
@@ -195,7 +206,7 @@ class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
                     def actionPerformed(e: ActionEvent) = System.exit(0)
                   })
     }
-
+    relabelVolumeItem.setEnabled(false)
     saveAsItem.setEnabled(false)
     addFileItem.setEnabled(false)
     exportItem.setEnabled(false)
@@ -315,8 +326,23 @@ class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
     }
   }
 
-  private def newFfsVolume {
+  private def newOFSVolume {
     setCurrentVolume(UserVolumeFactory.createEmptyDoubleDensityDisk("Empty", "OFS"))
+  }
+  private def newFFSVolume {
+    setCurrentVolume(UserVolumeFactory.createEmptyDoubleDensityDisk("Empty", "FFS"))
+  }
+
+  private def relabelVolume {
+    if (currentVolume != null) {
+      val newname = JOptionPane.showInputDialog(this,
+        "Please input new volume name",
+        "Relabel Volume...", JOptionPane.QUESTION_MESSAGE,
+        null, null, currentVolume.name)
+
+      currentVolume.name = newname.toString
+      treeModel.fireTreeStructureChanged
+    }
   }
 
   private def setCurrentVolume(volume: UserVolume) {
@@ -325,6 +351,7 @@ class AdfToolsFrame extends JFrame("Arr!Jay 1.0") {
     setCurrentDir(null)
 
     saveAsItem.setEnabled(currentVolume != null)
+    relabelVolumeItem.setEnabled(currentVolume != null)
     updateStatusbar
   }
 
